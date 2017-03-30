@@ -1,0 +1,37 @@
+[
+  {
+    "id": "1",
+    "username": "User1",
+    "email": "user1@mail.com",
+    "password": "password001",
+    "token": "ttttt1"
+  },
+  {
+    "id": "2",
+    "username": "User2",
+    "email": "user2@mail.com",
+    "password": "password002",
+    "token": "ttttt2"
+  },
+  {
+    "id": "3",
+    "username": "User3",
+    "email": "user3@mail.com",
+    "password": "password003",
+    "token": "ttttt3"
+  },
+  {
+    "id": "4",
+    "username": "User4",
+    "email": "user4@mail.com",
+    "password": "password004",
+    "token": "ttttt4"
+  },
+  {
+    "id": "5",
+    "username": "User5",
+    "email": "user5@mail.com",
+    "password": "password005",
+    "token": "ttttt5"
+  }
+]
