@@ -17,21 +17,19 @@ type Route struct {
 type Routes []Route
 
 var routes = Routes{
-	// ACL
-	//Route{"SignIn", "POST", "/sign_in", user_client.Validate(signIn.POST)},
-	//Route{"SignUp", "POST", "/sign_up", user_client.Validate(signUp.POST)},
+// ACL
+//Route{"SignIn", "POST", "/sign_in", user_client.Validate(signIn.POST)},
+//Route{"SignUp", "POST", "/sign_up", user_client.Validate(signUp.POST)},
 
-	// User
+// User
 
+//Route{"Ping", "GET", "/{id}", handler.BasicAuth(handler.Ping)},
+//Route{"PingToken", "GET", "/ping_token", ValidateToken(PingToken)},
+//Route{"Ping", "GET", "/ping", Ping},
 
-	//Route{"Ping", "GET", "/{id}", handler.BasicAuth(handler.Ping)},
-	//Route{"PingToken", "GET", "/ping_token", ValidateToken(PingToken)},
-	//Route{"Ping", "GET", "/ping", Ping},
-
-	// User
-	//Route{"CreateUser", "PUT", "/user", server.models.CreateUser},
+// User
+//Route{"CreateUser", "PUT", "/user", server.models.CreateUser},
 }
-
 
 //var users []model.User
 //
@@ -52,4 +50,3 @@ var routes = Routes{
 //	// It's important to exit the program if penguins.json can't be read into penguins slice.
 //	// Otherwise you will have errors due to unitialised slice.
 //}
-

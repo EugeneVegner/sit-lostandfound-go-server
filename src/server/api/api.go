@@ -1,6 +1,5 @@
 package api
 
-
 //type handler struct {
 //	writer http.ResponseWriter
 //	request *http.Request

@@ -2,30 +2,27 @@ package app
 
 import (
 	"gopkg.in/gin-gonic/gin.v1"
+	"net/http"
 	signIn "src/server/api/handlers/sign_in"
 	signUp "src/server/api/handlers/sign_up"
-	"net/http"
+	//"src/server/api"
+	fbAuth "src/server/api/handlers/fb_auth"
 )
 
 func init() {
 
 	router := gin.Default()
-	router.POST("/api/v1/sign_upq", signUp.POST)
-
-	api := router.Group("/api",)
+	v1 := router.Group("/api/v1")
 	{
-		v1 := api.Group("/v1")
-		{
-			v1.POST("/sign_in", signIn.POST)
-			v1.POST("/sign_up", signUp.POST)
-		}
-
+		v1.POST("/sign_in", signIn.POST)
+		v1.POST("/sign_up", signUp.POST)
+		v1.GET("/fb_auth", fbAuth.GET)
+	}
+	dev := router.Group("/api/dev")
+	{
+		dev.POST("/sign_in", signIn.POST)
 
 	}
-
-
-
-
 
 	//
 	//v1 := router.Group("/v1") {
@@ -38,9 +35,6 @@ func init() {
 	//	v1.POST("/read", readEndpoint)
 	//}
 
-
-
-
 	//router.GET("/someGet", getting)
 	//router.POST("/somePost", posting)
 	//router.PUT("/somePut", putting)
@@ -52,8 +46,6 @@ func init() {
 	// By default it serves on :8080 unless a
 	// PORT environment variable was defined.
 	//router.Run(":8080")
-
-
 
 	//router := src.ConfigureRoutes()
 	http.Handle("/", router)

@@ -5,32 +5,31 @@ import (
 	//"net/http"
 	"appengine"
 	"appengine/datastore"
-	model "src/server/models"
-	e "src/server/errors"
-	"src/server/utils"
-	"src/server/response"
 	"gopkg.in/gin-gonic/gin.v1"
+	e "src/server/errors"
+	model "src/server/models"
+	"src/server/response"
+	"src/server/utils"
 )
 
 type output struct {
-	Users []model.User `json:"users, required" binding:"required"`
+	Users  []model.User  `json:"users, required" binding:"required"`
 	Tokens []model.Token `json:"tokens, required" binding:"required"`
 }
 
-
-func POST(c *gin.Context)  {
+func POST(c *gin.Context) {
 	var user model.User
 	var token model.Token
 	errors := utils.EncodeBody(c, &user)
 	if errors != nil {
-		response.Failed(c,errors,22)
+		response.Failed(c, errors, 22)
 		return
 	}
 
 	ctx := appengine.NewContext(c.Request)
 	err := createNewUserWithToken(ctx, &user, &token)
 	if err != nil {
-		response.Failed(c, err,22)
+		response.Failed(c, err, 22)
 		return
 	}
 
@@ -46,23 +45,23 @@ func createNewUserWithToken(ctx appengine.Context, user *model.User, token *mode
 	var users []model.User
 	var errors []e.Error
 	q := datastore.NewQuery("User")
-	_, err1 := q.Filter("Username=",user.Username).Limit(1).GetAll(ctx, &users)
+	_, err1 := q.Filter("Username=", user.Username).Limit(1).GetAll(ctx, &users)
 	if err1 != nil {
-		errors = append(errors, e.New("username",31, err1.Error()))
+		errors = append(errors, e.New("username", 31, err1.Error()))
 		return errors
 	}
 	if len(users) > 0 {
-		errors = append(errors, e.New("username",32, "Username already exist"))
+		errors = append(errors, e.New("username", 32, "Username already exist"))
 		return errors
 	}
 
-	_, err2 := q.Filter("Email=",user.Email).Limit(1).GetAll(ctx, &users)
+	_, err2 := q.Filter("Email=", user.Email).Limit(1).GetAll(ctx, &users)
 	if err2 != nil {
-		errors = append(errors, e.New("email",33, err2.Error()))
+		errors = append(errors, e.New("email", 33, err2.Error()))
 		return errors
 	}
 	if len(users) > 0 {
-		errors = append(errors, e.New("email",34, "Email already exist"))
+		errors = append(errors, e.New("email", 34, "Email already exist"))
 		return errors
 	}
 
@@ -89,7 +88,7 @@ func createNewUserWithToken(ctx appengine.Context, user *model.User, token *mode
 	})
 
 	if err != nil {
-		errors = append(errors, e.New("registration",35, err.Error()))
+		errors = append(errors, e.New("registration", 35, err.Error()))
 		return errors
 	}
 

@@ -9,11 +9,11 @@ import (
 )
 
 type Token struct {
-	Id      int64 `json:"id" datastore:"-"`
+	Id      int64  `json:"id" datastore:"-"`
 	Key     string `json:"key"`
-	UserId  int64 `json:"userId"`
-	Created int64 `json:"created"`
-	Expired int64 `json:"expired"`
+	UserId  int64  `json:"userId"`
+	Created int64  `json:"created"`
+	Expired int64  `json:"expired"`
 }
 
 const (

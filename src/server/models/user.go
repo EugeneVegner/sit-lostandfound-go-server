@@ -2,8 +2,8 @@ package models
 
 import (
 	"fmt"
-	"net/http"
 	"github.com/gorilla/mux"
+	"net/http"
 	//"strings"
 	"appengine"
 	"appengine/datastore"
@@ -16,17 +16,21 @@ import (
 )
 
 type User struct {
-	Id              int64 `json:"id" datastore:"-"`
+	Id              int64  `json:"id" datastore:"-"`
 	Username        string `json:"username" datastore:"," valid:"length(2|32),required"`
+	FirstName       string `json:"firstName" datastore:","`
+	LastName        string `json:"lastName" datastore:","`
+	Name            string `json:"name" datastore:","`
 	Email           string `json:"email" datastore:"," valid:"email,required"`
 	Password        string `json:"password" datastore:"," valid:"length(8|24),required"`
-	EmailVerified   bool `json:"emailVerified" datastore:","`
+	EmailVerified   bool   `json:"emailVerified" datastore:","`
+	Fid             int64  `json:"fid" datastore:","`
 	DeviceToken     string `json:"deviceToken" datastore:","`
 	DeviceModel     string `json:"deviceModel" datastore:","`
 	PlatformVersion string `json:"platformVersion" datastore:","`
 	Platform        string `json:"platform" datastore:","`
-	Created         int64 `json:"created"`
-	Updated         int64 `json:"updated"`
+	Created         int64  `json:"created"`
+	Updated         int64  `json:"updated"`
 }
 
 func UserKey(c appengine.Context) *datastore.Key {
@@ -71,7 +75,6 @@ func getAll(ctx appengine.Context) ([]User, error) {
 	}
 	return users, nil
 }
-
 
 //func deleteDoneTodos(c appengine.Context) error {
 //	return datastore.RunInTransaction(c, func(c appengine.Context) error {

@@ -15,5 +15,6 @@ end
 dep "goapp get github.com/gorilla/mux"
 dep "goapp get github.com/asaskevich/govalidator"
 dep "goapp get gopkg.in/gin-gonic/gin.v1"
+dep "goapp get github.com/huandu/facebook"
 
 puts '----- OPERATION COMPLITED ------'

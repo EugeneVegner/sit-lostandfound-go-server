@@ -1,26 +1,26 @@
 package response
 
 import (
-	"gopkg.in/gin-gonic/gin.v1"
-	"fmt"
-	"net/http"
 	"encoding/json"
-	e "src/server/errors"
+	"fmt"
+	"gopkg.in/gin-gonic/gin.v1"
 	"log"
+	"net/http"
+	e "src/server/errors"
 	model "src/server/models"
 )
 
 type handler struct {
-	writer http.ResponseWriter
+	writer  http.ResponseWriter
 	request *http.Request
 }
 
 type output struct {
-	Success bool `json:"success"`
-	Code    int `json:"code"`
-	Errors  []e.Error `json:"errors"`
+	Success bool        `json:"success"`
+	Code    int         `json:"code"`
+	Errors  []e.Error   `json:"errors"`
 	Data    interface{} `json:"data"`
-	Rout    string `json:"rout,omitempty"`
+	Rout    string      `json:"rout,omitempty"`
 }
 
 //func (output *output) AddError(err e.Error ) []e.Error   {
@@ -90,7 +90,7 @@ func Failed(c *gin.Context, errors []e.Error, code int) {
 	//	c.JSON(http.StatusOK, &body)
 	//	return
 	//}
-	log.Println("MakeResponseError: true\n", )
+	log.Println("MakeResponseError: true\n")
 	//fmt.Fprint(w, string(body))
 	c.JSON(http.StatusOK, resp)
 

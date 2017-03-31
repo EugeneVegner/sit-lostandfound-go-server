@@ -22,7 +22,6 @@ type input struct {
 	Password string `json:"password," valid:"length(8|24),required" binding:"required"`
 }
 
-
 func POST(c *gin.Context) {
 
 	var input input
@@ -31,20 +30,20 @@ func POST(c *gin.Context) {
 
 	errors := utils.EncodeBody(c, &input)
 	if errors != nil {
-		response.Failed(c, errors,1)
+		response.Failed(c, errors, 1)
 		return
 	}
 
 	ctx := appengine.NewContext(c.Request)
 	err2 := getUserWithToken(ctx, &input, &user, &token)
 	if err2 != nil {
-		errors = append(errors, e.New("auth_user_error",1, err2.Error()))
-		response.Failed(c,errors,2)
+		errors = append(errors, e.New("auth_user_error", 1, err2.Error()))
+		response.Failed(c, errors, 2)
 		return
 	}
 
 	var output struct {
-		Users []model.User `json:"users"`
+		Users  []model.User  `json:"users"`
 		Tokens []model.Token `json:"tokens"`
 	}
 	output.Users = append(output.Users, user)
@@ -60,11 +59,11 @@ func getUserWithToken(ctx appengine.Context, input *input, user *model.User, tok
 
 	users := []model.User{}
 
-	log.Println("input.Email: ",input.Email)
+	log.Println("input.Email: ", input.Email)
 
 	q := datastore.NewQuery("User").
 		//Ancestor(userKey(ctx)).
-		Filter("Email =",input.Email)
+		Filter("Email =", input.Email)
 	//Order("Created")
 	//Filter("Password=",input.Password).
 	//Limit(1)
@@ -73,23 +72,22 @@ func getUserWithToken(ctx appengine.Context, input *input, user *model.User, tok
 
 	if err != nil {
 
-		log.Println("getUser: false\n", err.Error(),"\n")
+		log.Println("getUser: false\n", err.Error(), "\n")
 		return err
 	}
 	//user = nil
 	//log.Println("keys:\n", keys)
 	//log.Println("users:\n", users)
 
-
 	err1 := datastore.RunInTransaction(ctx, func(ctx appengine.Context) error {
 
 		users := []model.User{}
 
-		log.Println("input.Email: ",input.Email)
+		log.Println("input.Email: ", input.Email)
 
 		q := datastore.NewQuery("User").
-		Ancestor(userKey(ctx)).
-			Filter("Email =",input.Email)
+			Ancestor(userKey(ctx)).
+			Filter("Email =", input.Email)
 		//Order("Created")
 		//Filter("Password=",input.Password).
 		//Limit(1)
@@ -98,7 +96,7 @@ func getUserWithToken(ctx appengine.Context, input *input, user *model.User, tok
 
 		if err != nil {
 
-			log.Println("getUser: false\n", err.Error(),"\n")
+			log.Println("getUser: false\n", err.Error(), "\n")
 			return err
 		}
 		user = nil
@@ -120,10 +118,10 @@ func getUserWithToken(ctx appengine.Context, input *input, user *model.User, tok
 
 }
 
-
 func userKey(ctx appengine.Context) *datastore.Key {
 	return datastore.NewKey(ctx, "User", "", 0, nil)
 }
+
 
 //func getUserCredentials(ctx appengine.Context,input *input) (*model.User, *model.Token, *e.Error) {
 //
@@ -175,7 +173,6 @@ func userKey(ctx appengine.Context) *datastore.Key {
 //	}
 //	return usr, tkn, nil
 //}
-
 
 //func getToken(ctx appengine.Context, token *model.Token, user model.User) (*datastore.Key, error) {
 //
@@ -252,4 +249,3 @@ func getUser(ctx appengine.Context, input *input) (*model.User, error) {
 	//usr.Id = k.IntID()
 	//return k, nil
 }
-

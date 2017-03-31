@@ -1,4 +1,5 @@
-application: sit-autolifestory-go-server
+application: sit-lostandfound-go-server
+version: alpha-001
 #version: alpha-001
 runtime: go
 api_version: go1

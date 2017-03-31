@@ -1,15 +1,15 @@
 package ping_handler
 
 import (
-	//"time"
-	//"sync"
-	//"net/http"
-	//"fmt"
+//"time"
+//"sync"
+//"net/http"
+//"fmt"
 )
 
 type pingObj struct {
 	Title string `json:"title"`
-	Name  string    `json:"name"`
+	Name  string `json:"name"`
 	Rout  string `json:"-"`
 }
 
@@ -58,4 +58,3 @@ type pingObj struct {
 //	//todoId := vars["id"]
 //	fmt.Fprintln(w, "\nPing show: ", user.Id)
 //}
-

@@ -8,8 +8,8 @@ import (
 	//"io"
 	//"encoding/json"
 	"github.com/asaskevich/govalidator"
-	"strings"
 	"log"
+	"strings"
 )
 
 func EncodeBody(c *gin.Context, input interface{}) []e.Error {
@@ -20,12 +20,9 @@ func EncodeBody(c *gin.Context, input interface{}) []e.Error {
 	//log.Println("body err: ", err)
 
 	if err := c.BindJSON(&input); err != nil {
-		errors = append(errors, e.New("body_error",1, err.Error()))
+		errors = append(errors, e.New("body_error", 1, err.Error()))
 		return errors
 	}
-
-
-
 
 	//switch {
 	//case err == io.EOF:

@@ -1,14 +1,14 @@
 package validate_client
 
 import (
-	"net/http"
 	"encoding/json"
 	"github.com/asaskevich/govalidator"
+	"net/http"
 	model "src/server/models"
 	//"src/server/response"
-	e "src/server/errors"
 	"errors"
 	c "src/server/constants"
+	e "src/server/errors"
 )
 
 func Validate(h http.HandlerFunc) http.HandlerFunc {
@@ -39,7 +39,7 @@ func Validate(h http.HandlerFunc) http.HandlerFunc {
 }
 
 func validateClient(client *model.Client) error {
-	if  client.Platform != c.IOS && client.Platform != c.Android {
+	if client.Platform != c.IOS && client.Platform != c.Android {
 		return errors.New("Invalid validate_client platform. Please update app")
 	}
 	if client.Version != c.CurrentVersion {
@@ -47,4 +47,3 @@ func validateClient(client *model.Client) error {
 	}
 	return nil
 }
-
