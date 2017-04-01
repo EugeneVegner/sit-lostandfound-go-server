@@ -1,4 +1,4 @@
-package models
+package model
 
 type Client struct {
 	Version  string `json:"version" valid:"required`

@@ -1,4 +1,4 @@
-package models
+package model
 
 type Owner struct {
 	Id            string `json:"id"`

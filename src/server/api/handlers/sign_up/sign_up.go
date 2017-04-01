@@ -7,7 +7,7 @@ import (
 	"appengine/datastore"
 	"gopkg.in/gin-gonic/gin.v1"
 	e "src/server/errors"
-	model "src/server/models"
+	"src/server/models"
 	"src/server/response"
 	"src/server/utils"
 )
@@ -22,14 +22,14 @@ func POST(c *gin.Context) {
 	var token model.Token
 	errors := utils.EncodeBody(c, &user)
 	if errors != nil {
-		response.Failed(c, errors, 22)
+		response.Failed(c, errors)
 		return
 	}
 
 	ctx := appengine.NewContext(c.Request)
 	err := createNewUserWithToken(ctx, &user, &token)
 	if err != nil {
-		response.Failed(c, err, 22)
+		response.Failed(c, err)
 		return
 	}
 

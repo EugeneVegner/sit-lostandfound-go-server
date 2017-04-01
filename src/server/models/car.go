@@ -1,4 +1,4 @@
-package models
+package model
 
 type Car struct {
 	Title string `json:"title"`

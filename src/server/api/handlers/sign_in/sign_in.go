@@ -8,7 +8,7 @@ import (
 	"appengine"
 	"appengine/datastore"
 	e "src/server/errors"
-	model "src/server/models"
+	"src/server/models"
 	"src/server/utils"
 	//"github.com/asaskevich/govalidator"
 	"errors"
@@ -30,7 +30,7 @@ func POST(c *gin.Context) {
 
 	errors := utils.EncodeBody(c, &input)
 	if errors != nil {
-		response.Failed(c, errors, 1)
+		response.Failed(c, errors)
 		return
 	}
 
@@ -38,7 +38,7 @@ func POST(c *gin.Context) {
 	err2 := getUserWithToken(ctx, &input, &user, &token)
 	if err2 != nil {
 		errors = append(errors, e.New("auth_user_error", 1, err2.Error()))
-		response.Failed(c, errors, 2)
+		response.Failed(c, errors)
 		return
 	}
 
