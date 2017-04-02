@@ -1,16 +1,16 @@
 package auth
 
 import (
+	fb "github.com/huandu/facebook"
 	"gopkg.in/gin-gonic/gin.v1"
 	"src/server/response"
-	fb "github.com/huandu/facebook"
 	//"time"
 	"appengine"
 	"appengine/datastore"
 	e "src/server/errors"
 	//model "src/server/models"
 	//"github.com/asaskevich/govalidator"
-	"log"
+	log "src/server/logger"
 	//"go/constant"
 	//"time"
 	//"src/server/constants"
@@ -30,7 +30,7 @@ type inputEmail struct {
 }
 
 type facebookUser struct {
-	Id        int64 `binding:"required"`
+	Id        string `binding:"required"`
 	Name      string `binding:"required"`
 	FirstName string `binding:"required"`
 	LastName  string
@@ -38,126 +38,118 @@ type facebookUser struct {
 }
 
 func FB(c *gin.Context) {
-
-	//c.Abort()
-	//var input inputFB
-	//var user model.User
-	//var fbUser facebookUser
-	//var token model.Token
+	log.Func(FB)
+	var input inputFB
 	var errors []e.Error
-	log.Println("IS ABORTED: ", c.IsAborted())
-	errors = append(errors, e.New("tokenX", 1, "FAK"))
-	response.Failed(c, errors)
-	//return
-	//
-	//
-	//if err := c.BindJSON(&input); err != nil {
-	//	log.Println("BindJSON: ", err.Error())
-	//	errors = append(errors, e.New("token", 1, err.Error()))
-	//	response.Failed(c, errors)
-	//	return
-	//}
-	//
-	//ctx := appengine.NewContext(c.Request)
-	//err2 := facebookAuth(ctx, input.FacebookToken, &fbUser)
-	//if err2 != nil {
-	//	log.Println("facebookAuth: ", err2.Error())
-	//	errors = append(errors, e.New("facebook", 2, err2.Error()))
-	//	response.Failed(c, errors)
-	//	return
-	//}
-	//
-	////err2 := getUserWithToken(ctx, &input, &user, &token)
-	////if err2 != nil {
-	////	errors = append(errors, e.New("auth_user_error",1, err2.Error()))
-	////	response.Failed(c,errors,2)
-	////	return
-	////}
-	//
-	//var output struct {
-	//	Users  []model.User `json:"users"`
-	//	Tokens []model.Token `json:"tokens"`
-	//}
-	//output.Users = append(output.Users, user)
-	//output.Tokens = append(output.Tokens, token)
-	//
-	//response.Success(c, output)
 
+	if err := c.BindJSON(&input); err != nil {
+		log.DebugError("BindJSON: ", err.Error())
+		errors = append(errors, e.New("token", 1, err.Error()))
+		response.Failed(c, errors, "Can't bind input parameters")
+		return
+	}
+
+	ctx := appengine.NewContext(c.Request)
+	fbUser, err2 := facebookAuth(ctx, input.FacebookToken)
+	if err2 != nil {
+		log.DebugError("facebookAuth: ", err2.Error())
+		errors = append(errors, e.New("facebook", 2, err2.Error()))
+		response.Failed(c, errors, "Can't auth to facebook and get user's info")
+		return
+	}
+	log.Debug("fbUser ID: ", fbUser.Id)
+
+	user, token, err3 := configureUserWithToken(ctx, fbUser)
+	if err3 != nil {
+		errors = append(errors, e.New("facebook", 1, err3.Error()))
+		response.Failed(c, errors, "Gan't get/save User and Token")
+		return
+	}
+
+	var output struct {
+		UserId       int64  `json:"userId"`
+		Token        string `json:"token"`
+		TokenExpired int64  `json:"tokenExpired"`
+	}
+	output.UserId = user.Id
+	output.Token = token.Hash
+	output.TokenExpired = token.Expired
+
+	response.Success(c, output)
 }
 
-//func getUserWithToken(ctx appengine.Context, input *input, user *model.User, token *model.Token) error {
-//
-//	//var users []model.User
-//
-//	users := []model.User{}
-//
-//	log.Println("input.Email: ",input.Email)
-//
-//	q := datastore.NewQuery("User").
-//	//Ancestor(userKey(ctx)).
-//		Filter("Email =",input.Email)
-//	//Order("Created")
-//	//Filter("Password=",input.Password).
-//	//Limit(1)
-//
-//	_, err := q.GetAll(ctx, &users)
-//
-//	if err != nil {
-//
-//		log.Println("getUser: false\n", err.Error(),"\n")
-//		return err
-//	}
-//	//user = nil
-//	//log.Println("keys:\n", keys)
-//	//log.Println("users:\n", users)
-//
-//
-//	err1 := datastore.RunInTransaction(ctx, func(ctx appengine.Context) error {
-//
-//		users := []model.User{}
-//
-//		log.Println("input.Email: ",input.Email)
-//
-//		q := datastore.NewQuery("User").
-//			Ancestor(userKey(ctx)).
-//			Filter("Email =",input.Email)
-//		//Order("Created")
-//		//Filter("Password=",input.Password).
-//		//Limit(1)
-//
-//		keys, err := q.GetAll(ctx, &users)
-//
-//		if err != nil {
-//
-//			log.Println("getUser: false\n", err.Error(),"\n")
-//			return err
-//		}
-//		user = nil
-//		log.Println("keys:\n", keys)
-//		log.Println("users:\n", users)
-//
-//		return nil
-//
-//	}, &datastore.TransactionOptions{
-//		XG:       true,
-//		Attempts: 3,
-//	})
-//
-//	if err1 != nil {
-//		return err1
-//	}
-//
-//	return nil
-//
-//}
+func configureUserWithToken(ctx appengine.Context, fbUser *facebookUser) (*model.User, *model.Token, error) {
+	log.Func(configureUserWithToken)
+	keys, users, err := model.GetUsersBy(ctx, "Fid=", fbUser.Id, 1)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(users) == 0 {
+		return createNewUserAndToken(ctx, fbUser)
+
+	} else {
+		user := &users[0]
+		userKey := keys[0]
+		_, t, err1 := model.GetTokenByUserId(ctx, user.Id)
+		if err1 != nil {
+			return nil, nil, err1
+		}
+
+		t.Generate()
+		_, err2 := model.SaveToken(ctx, t, userKey)
+		if err2 != nil {
+			return nil, nil, err2
+		}
+		return user, t, nil
+	}
+
+	//err1 := datastore.RunInTransaction(ctx, func(ctx appengine.Context) error {
+	//
+	//	users := []model.User{}
+	//	q := datastore.NewQuery("User").Ancestor(userKey(ctx)).Filter("Fib =",fbUser.Id).Limit(1)
+	//	keys, err := q.GetAll(ctx, &users)
+	//	if err != nil {
+	//		return err
+	//	}
+	//
+	//	if len(users) == 0 {
+	//
+	//
+	//
+	//	} else {
+	//
+	//
+	//	}
+	//
+	//	if err != nil {
+	//
+	//		log.Println("getUser: false\n", err.Error(),"\n")
+	//		return err
+	//	}
+	//	user = nil
+	//	log.Println("keys:\n", keys)
+	//	log.Println("users:\n", users)
+	//
+	//	return nil
+	//
+	//}, &datastore.TransactionOptions{
+	//	XG:       true,
+	//	Attempts: 3,
+	//})
+	//
+	//if err1 != nil {
+	//	return err1
+	//}
+
+}
 
 func userKey(ctx appengine.Context) *datastore.Key {
 	return datastore.NewKey(ctx, "User", "", 0, nil)
 }
 
-func facebookAuth(ctx appengine.Context, token string, usr *facebookUser) error {
-
-	log.Println("facebookToken: ", token)
+func facebookAuth(ctx appengine.Context, token string) (*facebookUser, error) {
+	log.Func(facebookAuth)
+	log.Debug("facebookToken: ", token)
 	//ses := fb.New(constants.FacebookAppId, constants.FacebookAppSecret)
 
 	//client := urlfetch.Client(ctx)
@@ -172,45 +164,63 @@ func facebookAuth(ctx appengine.Context, token string, usr *facebookUser) error 
 	fb.Version = "v2.8"
 
 	res, err := fb.Get("/me", fb.Params{
-		//"fields": "first_name, email",
+		"fields": "name, first_name, last_name, email",
 		"access_token": token,
 	})
 	if err != nil {
-		return err
+		log.DebugError("Facebook request error: ", err.Error())
+		return nil, err
 	}
-
-	res.DecodeField("id", usr.Id)
-	res.DecodeField("name", usr.Name)
-	res.DecodeField("first_name", usr.FirstName)
-	res.DecodeField("last_name", usr.LastName)
-	res.DecodeField("email", usr.Email)
-	log.Println("FB Result: ", res)
-	log.Println("FB User: ", usr)
-	return nil
+	var user facebookUser
+	res.DecodeField("id", &user.Id)
+	res.DecodeField("name", &user.Name)
+	res.DecodeField("first_name", &user.FirstName)
+	res.DecodeField("last_name", &user.LastName)
+	res.DecodeField("email", &user.Email)
+	log.Debug("FB Result: ", res)
+	log.Debug("FB User: ", user)
+	return &user, nil
 }
 
-func (fbUser *facebookUser) saveOrUpdateUser(ctx appengine.Context, user *model.User) error {
-
-	users := []model.User{}
-	q := datastore.NewQuery("User").Filter("Fib =", fbUser.Id).Limit(1)
-	_, err := q.GetAll(ctx, &users)
-	if err != nil {
-		return err
+func createNewUserAndToken(ctx appengine.Context, fbUser *facebookUser) (*model.User, *model.Token, error) {
+	log.Func(createNewUserAndToken)
+	var user model.User
+	user.Name = fbUser.Name
+	user.FirstName = fbUser.FirstName
+	user.LastName = fbUser.LastName
+	user.Email = fbUser.Email
+	if len(user.Email) > 0 {
+		user.EmailVerified = true
 	}
-	if len(users) == 0 {
+	user.Fid = fbUser.Id
 
-		//user.SaveUser()
+	var token model.Token
+	token.Generate()
 
-	} else {
+	err := datastore.RunInTransaction(ctx, func(ctx appengine.Context) error {
 
-		//user = users[0]
+		k, err1 := model.SaveUser(ctx, &user)
+		if err1 != nil {
+			return err1
+		}
+		token.UserId = user.Id
+		_, err2 := model.SaveToken(ctx, &token, k)
+		if err2 != nil {
+			return err2
+		}
 		return nil
+
+	}, &datastore.TransactionOptions{
+		XG:       true,
+		Attempts: 3,
+	})
+
+	if err != nil {
+		return nil, nil, err
 	}
-	return nil
+	return &user, &token, nil
 
 }
-
-
 
 //func getUserCredentials(ctx appengine.Context,input *input) (*model.User, *model.Token, *e.Error) {
 //

@@ -22,14 +22,14 @@ func POST(c *gin.Context) {
 	var token model.Token
 	errors := utils.EncodeBody(c, &user)
 	if errors != nil {
-		response.Failed(c, errors)
+		response.Failed(c, errors, "The body can't be encoded")
 		return
 	}
 
 	ctx := appengine.NewContext(c.Request)
 	err := createNewUserWithToken(ctx, &user, &token)
 	if err != nil {
-		response.Failed(c, err)
+		response.Failed(c, err, "Can't create new User with Token")
 		return
 	}
 
@@ -45,16 +45,6 @@ func createNewUserWithToken(ctx appengine.Context, user *model.User, token *mode
 	var users []model.User
 	var errors []e.Error
 	q := datastore.NewQuery("User")
-	_, err1 := q.Filter("Username=", user.Username).Limit(1).GetAll(ctx, &users)
-	if err1 != nil {
-		errors = append(errors, e.New("username", 31, err1.Error()))
-		return errors
-	}
-	if len(users) > 0 {
-		errors = append(errors, e.New("username", 32, "Username already exist"))
-		return errors
-	}
-
 	_, err2 := q.Filter("Email=", user.Email).Limit(1).GetAll(ctx, &users)
 	if err2 != nil {
 		errors = append(errors, e.New("email", 33, err2.Error()))

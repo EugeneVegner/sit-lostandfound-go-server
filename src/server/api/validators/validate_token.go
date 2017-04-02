@@ -1,69 +1,45 @@
 package validator
 
 import (
+	"appengine"
+	"appengine/datastore"
 	"gopkg.in/gin-gonic/gin.v1"
+	"src/server/models"
+	"src/server/response"
+	"strings"
 )
-
-//import "net/http"
-
-//func ValidateToken(h HandlerTokenFunc) http.HandlerFunc {
-//
-//	return func(w http.ResponseWriter, r *http.Request) {
-//
-//		//s := strings.SplitN(r.Header.Get("Authorization"), " ", 2)
-//		//if len(s) != 2 {
-//		//	MakeResponseWithError(w,r, utils.MakeError("", 401, "Not authorized"))
-//		//	return
-//		//}
-//		//
-//		//if s[0] != "Basic" {
-//		//	MakeResponseWithError(w,r, utils.MakeError("", 401, "Not authorized"))
-//		//	return
-//		//}
-//		//
-//		//tokenKey := s[1]
-//		//
-//		//ctx := appengine.NewContext(r)
-//		//
-//		//
-//		// usr, err := model.CurrentUser(w,r)
-//		//if err != nil {
-//		//	MakeResponseWithError(w,r, utils.MakeError("", 12, err))
-//		//}
-//
-//		//usr, err := model.CurrentUser(w,r)
-//		//h.ServeTokenHTTP(w, r, nil)
-//	}
-//}
-
 
 func Token() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
-		//c.Request.Header
+		token_key := c.Request.Header.Get("Authorization")
+		if len(strings.TrimSpace(token_key)) == 0 {
+			response.InvalidToken(c, "'Authorization' header not exist or Token is not exist")
+			c.Abort()
+			return
+		}
 
+		var tokens []model.Token
+		ctx := appengine.NewContext(c.Request)
+		q := datastore.NewQuery("Token").Filter("Key =", token_key).Limit(1)
 
-		//var errors []e.Error
-		//var cl model.Client
-		//j := r.Header.Get("Client")
-		//if err1 := json.Unmarshal([]byte(j), &cl); err1 != nil {
-		//	errors = append(errors, e.New("client_error", 1, err1.Error()))
-		//	//response.Failed(w, r, errors, 5)
-		//	return
-		//}
-		//_, err2 := govalidator.ValidateStruct(cl)
-		//if err2 != nil {
-		//	errors = append(errors, e.New("client_error", 2, err2.Error()))
-		//	//response.Failed(w, r, errors, 5)
-		//	return
-		//}
-		//if err3 := validateClient(&cl); err3 != nil {
-		//	errors = append(errors, e.New("client_error", 3, err3.Error()))
-		//	//response.Failed(w, r, errors, 5)
-		//	return
-		//}
-		//
-		//
-		//c.Next()
+		_, err := q.GetAll(ctx, &tokens)
+		if err != nil {
+			response.InvalidToken(c, "Token query error: "+err.Error())
+			c.Abort()
+			return
+		}
+		if len(tokens) == 0 {
+			response.InvalidToken(c, "Token not found")
+			c.Abort()
+			return
+		}
+		token := tokens[0]
+		if token.IsExpired() {
+			response.ExpiredToken(c, "Token is expired")
+			c.Abort()
+			return
+		}
+
 	}
 }

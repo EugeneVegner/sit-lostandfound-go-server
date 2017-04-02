@@ -30,7 +30,7 @@ func POST(c *gin.Context) {
 
 	errors := utils.EncodeBody(c, &input)
 	if errors != nil {
-		response.Failed(c, errors)
+		response.Failed(c, errors, "The body can't be encoded")
 		return
 	}
 
@@ -38,7 +38,7 @@ func POST(c *gin.Context) {
 	err2 := getUserWithToken(ctx, &input, &user, &token)
 	if err2 != nil {
 		errors = append(errors, e.New("auth_user_error", 1, err2.Error()))
-		response.Failed(c, errors)
+		response.Failed(c, errors, "User and token not found")
 		return
 	}
 
@@ -63,7 +63,7 @@ func getUserWithToken(ctx appengine.Context, input *input, user *model.User, tok
 
 	q := datastore.NewQuery("User").
 		//Ancestor(userKey(ctx)).
-		Filter("Email =", input.Email)
+		Filter("Email=", input.Email)
 	//Order("Created")
 	//Filter("Password=",input.Password).
 	//Limit(1)
@@ -87,7 +87,7 @@ func getUserWithToken(ctx appengine.Context, input *input, user *model.User, tok
 
 		q := datastore.NewQuery("User").
 			Ancestor(userKey(ctx)).
-			Filter("Email =", input.Email)
+			Filter("Email=", input.Email)
 		//Order("Created")
 		//Filter("Password=",input.Password).
 		//Limit(1)
@@ -121,7 +121,6 @@ func getUserWithToken(ctx appengine.Context, input *input, user *model.User, tok
 func userKey(ctx appengine.Context) *datastore.Key {
 	return datastore.NewKey(ctx, "User", "", 0, nil)
 }
-
 
 //func getUserCredentials(ctx appengine.Context,input *input) (*model.User, *model.Token, *e.Error) {
 //

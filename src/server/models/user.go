@@ -13,28 +13,51 @@ import (
 	"encoding/json"
 	"time"
 	//"go/validate_token"
+	log "src/server/logger"
 )
 
-type User struct {
-	Id              int64  `json:"id" datastore:"-"`
-	Username        string `json:"username" datastore:"," valid:"length(2|32),required"`
-	FirstName       string `json:"firstName" datastore:","`
-	LastName        string `json:"lastName" datastore:","`
-	Name            string `json:"name" datastore:","`
-	Email           string `json:"email" datastore:"," valid:"email,required"`
-	Password        string `json:"password" datastore:"," valid:"length(8|24),required"`
-	EmailVerified   bool   `json:"emailVerified" datastore:","`
-	Fid             int64  `json:"fid" datastore:","`
-	DeviceToken     string `json:"deviceToken" datastore:","`
-	DeviceModel     string `json:"deviceModel" datastore:","`
-	PlatformVersion string `json:"platformVersion" datastore:","`
-	Platform        string `json:"platform" datastore:","`
-	Created         int64  `json:"created"`
-	Updated         int64  `json:"updated"`
-}
+//type User struct {
+//	Id            int64  `json:"id" datastore:"-"`
+//	Name          string `json:"fullName" datastore:"name, " valid:"required"`
+//	FirstName     string `json:"firstName" datastore:"firstName,"`
+//	LastName      string `json:"lastName" datastore:"lastName,"`
+//	Email         string `json:"email" datastore:"email," valid:"email,required"`
+//	Password      string `json:"password" datastore:"password," valid:"length(8|24),required"`
+//	EmailVerified bool   `json:"emailVerified" datastore:"emailVerified,"`
+//	Fid           string `json:"fid" datastore:"fid,"`
+//	DeviceToken   string `json:"deviceToken" datastore:"deviceToken,"`
+//	Platform      string `json:"platform" datastore:"platform,"`
+//	Created       int64  `json:"created" datastore:"created,"`
+//	Updated       int64  `json:"updated" datastore:"updated,"`
+//}
+//type User struct {
+//	Id            int64  `json:"id" datastore:"-"`
+//	Name          string `json:"fullName" datastore:"name" valid:"required"`
+//	FirstName     string `json:"firstName" datastore:"first_name"`
+//	LastName      string `json:"lastName" datastore:"last_name"`
+//	Email         string `json:"email" datastore:"email" valid:"email,required"`
+//	Password      string `json:"password" datastore:"password" valid:"length(8|24),required"`
+//	EmailVerified bool   `json:"emailVerified" datastore:"email_verified"`
+//	Fid           string `json:"fid" datastore:"fid"`
+//	DeviceToken   string `json:"deviceToken" datastore:"device_token"`
+//	Platform      string `json:"platform" datastore:"platform"`
+//	Created       int64  `json:"created" datastore:"created"`
+//	Updated       int64  `json:"updated" datastore:"updated"`
+//}
 
-func UserKey(c appengine.Context) *datastore.Key {
-	return datastore.NewKey(c, "User", "default", 0, nil)
+type User struct {
+	Id            int64  `json:"id" datastore:"-"`
+	Name          string `json:"fullName" valid:"required"`
+	FirstName     string `json:"firstName"`
+	LastName      string `json:"lastName"`
+	Email         string `json:"email" valid:"email,required"`
+	Password      string `json:"password" valid:"length(8|24),required"`
+	EmailVerified bool   `json:"emailVerified"`
+	Fid           string `json:"fid"`
+	DeviceToken   string `json:"deviceToken"`
+	Platform      string `json:"platform"`
+	Created       int64  `json:"created"`
+	Updated       int64  `json:"updated"`
 }
 
 func (user *User) key(ctx appengine.Context) *datastore.Key {
@@ -42,19 +65,63 @@ func (user *User) key(ctx appengine.Context) *datastore.Key {
 		t := time.Now().UTC().Unix()
 		user.Updated = t
 		user.Created = t
-		return datastore.NewIncompleteKey(ctx, "User", nil)
+		k := datastore.NewIncompleteKey(ctx, "User", nil)
+		log.Debug("new incomplete key: ", k)
+		return k
 	}
-	return datastore.NewKey(ctx, "User", "", user.Id, nil)
+	k := datastore.NewKey(ctx, "User", "", user.Id, nil)
+	log.Debug("new key: ", k)
+	return k
 }
 
-func (user *User) SaveUser(ctx appengine.Context) (*User, *datastore.Key, error) {
+func SaveUser(ctx appengine.Context, user *User) (*datastore.Key, error) {
+	log.Func(SaveUser)
+	user.Updated = time.Now().UTC().Unix()
 	k, err := datastore.Put(ctx, user.key(ctx), user)
+	if err != nil {
+		return nil, err
+	}
+	user.Id = k.IntID()
+	return k, nil
+}
+
+func GetUsersBy(ctx appengine.Context, filter string, value interface{}, limit int) ([]*datastore.Key, []User, error) {
+	log.Func(GetUsersBy)
+	var users []User
+	log.Debug("filter: ", filter)
+
+	//var entity = "User"
+	//users := []User{}
+	q := datastore.NewQuery("User").Filter(filter, value).Order("Created")
+
+	//q := datastore.NewQuery("User").Filter("fid =", "728659613962688")
+	if limit > 0 {
+		q = q.Limit(limit)
+	}
+	ks, err := q.GetAll(ctx, &users)
+	log.Debug("keys: ", ks)
+
+	if err != nil {
+		log.DebugError("GetUsersBy error: ", err)
+		return nil, nil, err
+	}
+	for i := 0; i < len(users); i++ {
+		users[i].Id = ks[i].IntID()
+	}
+	log.Debug("Users: ", users)
+	return ks, users, nil
+}
+
+func GetUserBy(ctx appengine.Context, filter string, value interface{}) (*datastore.Key, *User, error) {
+	log.Func(GetUserBy)
+	keys, users, err := GetUsersBy(ctx, filter, value, 1)
 	if err != nil {
 		return nil, nil, err
 	}
-	user.Id = k.IntID()
-	user.Updated = time.Now().UTC().Unix()
-	return user, k, nil
+	if len(users) == 0 {
+		return nil, nil, errors.New("User not found")
+	}
+	return keys[0], &users[0], nil
 }
 
 func DecodeUser(r io.ReadCloser) (*User, error) {
@@ -66,7 +133,7 @@ func DecodeUser(r io.ReadCloser) (*User, error) {
 
 func getAll(ctx appengine.Context) ([]User, error) {
 	users := []User{}
-	ks, err := datastore.NewQuery("User").Order("Created").GetAll(ctx, &users)
+	ks, err := datastore.NewQuery("User").Order("created").GetAll(ctx, &users)
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +240,7 @@ func GetUserByEmail(ctx appengine.Context, email string, user interface{}) error
 
 func GetUserByEmailUsername(ctx appengine.Context, username string, email string, user interface{}) error {
 
-	q := datastore.NewQuery("User").Filter("Email =", email).Filter("Username =", username)
+	q := datastore.NewQuery("User").Filter("email =", email).Filter("Username =", username)
 	c, err := q.Count(ctx)
 	if err != nil {
 		return errors.New("1")

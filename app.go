@@ -6,9 +6,9 @@ import (
 	signIn "src/server/api/handlers/sign_in"
 	signUp "src/server/api/handlers/sign_up"
 	//"src/server/api"
+	"net/http"
 	"src/server/api/handlers/auth"
 	"src/server/api/validators"
-	"net/http"
 )
 
 func init() {
