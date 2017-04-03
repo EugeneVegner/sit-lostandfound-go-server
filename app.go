@@ -29,8 +29,22 @@ func init() {
 			authV1.POST("/sign_in", signIn.POST)
 			authV1.POST("/sign_up", signUp.POST)
 			authV1.POST("/recovery", signUp.POST)
-			authV1.POST("/reset", signUp.POST)
 		}
+
+		authTokenV1 := v1.Group("/auth")
+		authTokenV1.Use(validator.Token())
+		{
+			authTokenV1.POST("/sign_out", signUp.POST)
+			authTokenV1.POST("/reset", signUp.POST)
+		}
+
+		sysV1 := v1.Group("/sys")
+		sysV1.Use(validator.Token())
+		{
+			sysV1.POST("/fb", auth.FB)
+			sysV1.POST("/sign_in", signIn.POST)
+		}
+
 
 		usersV1 := v1.Group("/users")
 		usersV1.Use(validator.Token())
