@@ -5,10 +5,14 @@ import (
 	//"net/http"
 	signIn "src/server/api/handlers/sign_in"
 	signUp "src/server/api/handlers/sign_up"
+
+	ping "src/server/api/handlers/ping"
 	//"src/server/api"
 	"net/http"
 	"src/server/api/handlers/auth"
 	"src/server/api/validators"
+
+	r "src/server/router"
 )
 
 func init() {
@@ -23,6 +27,13 @@ func init() {
 
 	v1 := router.Group("/api/v1")
 	{
+
+		pingV1 := v1.Group("/ping")
+		{
+			pingV1.POST("/fb", r.Session(ping.Test))
+		}
+
+
 		authV1 := v1.Group("/auth")
 		{
 			authV1.POST("/fb", auth.FB)

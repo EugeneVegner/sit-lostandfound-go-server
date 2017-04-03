@@ -1,11 +1,18 @@
 package ping_handler
 
 import (
+	"src/server/router"
+	log "src/server/logger"
 //"time"
 //"sync"
 //"net/http"
 //"fmt"
 )
+
+func Test(r *router.Route) {
+	log.Func(Test)
+
+}
 
 type pingObj struct {
 	Title string `json:"title"`
