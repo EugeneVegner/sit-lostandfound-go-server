@@ -8,6 +8,7 @@ import (
 
 func Test(r *router.Route) {
 	log.Func(Test)
+	log.Debug("Params: ", r.Context.Params)
 	response.Success(r.Context, nil)
 
 }

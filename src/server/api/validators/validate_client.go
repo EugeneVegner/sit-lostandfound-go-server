@@ -9,6 +9,10 @@ import (
 	"strings"
 )
 
+const (
+	kPlatform string = constants.ParamKeyPlatform
+)
+
 func Client() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
@@ -40,5 +44,10 @@ func Client() gin.HandlerFunc {
 			response.NotSupported(c, "Invalid a platform's value")
 			c.Abort()
 		}
+
+		c.Params = append(c.Params, gin.Param{
+			Key: kPlatform,
+			Value: platform,
+		})
 	}
 }
