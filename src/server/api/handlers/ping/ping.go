@@ -3,21 +3,13 @@ package ping_handler
 import (
 	"src/server/router"
 	log "src/server/logger"
-//"time"
-//"sync"
-//"net/http"
-//"fmt"
+	"src/server/response"
 )
 
 func Test(r *router.Route) {
 	log.Func(Test)
+	response.Success(r.Context, nil)
 
-}
-
-type pingObj struct {
-	Title string `json:"title"`
-	Name  string `json:"name"`
-	Rout  string `json:"-"`
 }
 
 //var users []model.User

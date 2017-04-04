@@ -30,7 +30,7 @@ func init() {
 
 		pingV1 := v1.Group("/ping")
 		{
-			pingV1.POST("/fb", r.Session(ping.Test))
+			pingV1.POST("/test", r.Session(ping.Test))
 		}
 
 

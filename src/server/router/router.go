@@ -1,7 +1,7 @@
 package router
 
 import (
-	"github.com/gin-gonic/gin"
+	"gopkg.in/gin-gonic/gin.v1"
 )
 
 type Route struct {
@@ -12,21 +12,13 @@ type Route struct {
 	Context *gin.Context
 }
 
-func RoutFunc(c *gin.Context) *Route  {
-	var rout Route
-	rout.Context = c
-	rout.Error = nil
-	return &rout
-}
-
-
 type HandlerSessionFunc func(*Route)
 func (f HandlerSessionFunc) ServeSessionHTTP(route *Route) {
 	f(route)
 }
 
-type HandlerGinFunc func(*gin.Context)
-func Session(h HandlerSessionFunc) HandlerGinFunc {
+//type HandlerGinFunc func(*gin.Context)
+func Session(h HandlerSessionFunc) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		var rout Route
