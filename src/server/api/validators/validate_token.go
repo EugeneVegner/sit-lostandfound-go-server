@@ -7,39 +7,53 @@ import (
 	"src/server/models"
 	"src/server/response"
 	"strings"
+	c "src/server/constants"
 )
 
-func Token() gin.HandlerFunc {
-	return func(c *gin.Context) {
 
-		token_key := c.Request.Header.Get("Authorization")
+func Token() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+
+		token_key := ctx.Request.Header.Get("Authorization")
 		if len(strings.TrimSpace(token_key)) == 0 {
-			response.InvalidToken(c, "'Authorization' header not exist or Token is not exist")
-			c.Abort()
+			response.InvalidToken(ctx, "'Authorization' header not exist or Token is not exist")
+			ctx.Abort()
 			return
 		}
 
 		var tokens []model.Token
-		ctx := appengine.NewContext(c.Request)
+		ctx_req := appengine.NewContext(ctx.Request)
 		q := datastore.NewQuery("Token").Filter("Key =", token_key).Limit(1)
 
-		_, err := q.GetAll(ctx, &tokens)
+		_, err := q.GetAll(ctx_req, &tokens)
 		if err != nil {
-			response.InvalidToken(c, "Token query error: "+err.Error())
-			c.Abort()
+			response.InvalidToken(ctx, "Token query error: "+err.Error())
+			ctx.Abort()
 			return
 		}
 		if len(tokens) == 0 {
-			response.InvalidToken(c, "Token not found")
-			c.Abort()
+			response.InvalidToken(ctx, "Token not found")
+			ctx.Abort()
 			return
 		}
 		token := tokens[0]
 		if token.IsExpired() {
-			response.ExpiredToken(c, "Token is expired")
-			c.Abort()
+			response.ExpiredToken(ctx, "Token is expired")
+			ctx.Abort()
 			return
 		}
+
+		// Configure parameters for Context
+		ctx.Params = append(ctx.Params, gin.Param{
+			Key: c.ParamKeyUserId,
+			Value: string(token.UserId),
+
+		})
+		ctx.Params = append(ctx.Params, gin.Param{
+			Key: c.ParamKeySessionToken,
+			Value: string(token.Hash),
+		})
+
 
 	}
 }

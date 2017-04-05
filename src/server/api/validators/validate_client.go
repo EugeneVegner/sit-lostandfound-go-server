@@ -11,6 +11,7 @@ import (
 
 const (
 	kPlatform string = constants.ParamKeyPlatform
+	kAppVersion string = constants.ParamKeyAppVersion
 )
 
 func Client() gin.HandlerFunc {
@@ -45,9 +46,14 @@ func Client() gin.HandlerFunc {
 			c.Abort()
 		}
 
+		// Configure parameters for Context
 		c.Params = append(c.Params, gin.Param{
 			Key: kPlatform,
 			Value: platform,
+		})
+		c.Params = append(c.Params, gin.Param{
+			Key: kAppVersion,
+			Value: ver,
 		})
 	}
 }
