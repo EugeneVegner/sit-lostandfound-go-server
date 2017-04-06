@@ -1,32 +1,30 @@
 package auth
 
+//EAAGdJ4AWqAQBAN3WSXD6EGdZCO8PphlsEf7iairkhrUdCnTrN3347ojiMZCIYKv7InTx5nPWd0mmfGHBMvd3yDBPfi4ZBAAV6O51ZAKBclYUV6JICnDgdMzzZCfU5HoB1xSOjWuGMaZBSmIEkMbXs2uf2wqFcVZCfok8NBkAg6yBZAsDQohfiGhf8pxxx6Fe1C69fD9xEMD9o8bbO8vhf6CeKNiLPbs6yLsZD
+
 import (
 	fb "github.com/huandu/facebook"
 	"gopkg.in/gin-gonic/gin.v1"
 	"src/server/response"
-	//"time"
 	"appengine"
 	"appengine/datastore"
+	c "src/server/constants"
 	e "src/server/errors"
-	//model "src/server/models"
-	//"github.com/asaskevich/govalidator"
 	log "src/server/logger"
-	//"go/constant"
-	//"time"
-	//"src/server/constants"
-	//"appengine/urlfetch"
 	"appengine/urlfetch"
-	//"errors"
 	"src/server/models"
 )
 
-type inputFB struct {
+type input struct {
 	FacebookToken string `binding:"required"`
+	DeviceToken string
+	DeviceID string
 }
 
-type inputEmail struct {
-	Email    string `binding:"required"`
-	Password string `binding:"required"`
+type output struct {
+	UserId int64 `binding:"required"`
+	Token string `binding:"required"`
+	Expired string `binding:"required"`
 }
 
 type facebookUser struct {
@@ -37,32 +35,32 @@ type facebookUser struct {
 	Email     string
 }
 
-func FB(c *gin.Context) {
+func FB(ctx *gin.Context) {
 	log.Func(FB)
-	var input inputFB
+	var input input
 	var errors []e.Error
 
-	if err := c.BindJSON(&input); err != nil {
+	if err := ctx.BindJSON(&input); err != nil {
 		log.DebugError("BindJSON: ", err.Error())
 		errors = append(errors, e.New("token", 1, err.Error()))
-		response.Failed(c, errors, "Can't bind input parameters")
+		response.Failed(ctx, errors, "Can't bind input parameters")
 		return
 	}
 
-	ctx := appengine.NewContext(c.Request)
-	fbUser, err2 := facebookAuth(ctx, input.FacebookToken)
+	db := appengine.NewContext(ctx.Request)
+	fbUser, err2 := facebookAuth(db, input.FacebookToken)
 	if err2 != nil {
 		log.DebugError("facebookAuth: ", err2.Error())
 		errors = append(errors, e.New("facebook", 2, err2.Error()))
-		response.Failed(c, errors, "Can't auth to facebook and get user's info")
+		response.Failed(ctx, errors, "Can't auth to facebook and get user's info")
 		return
 	}
 	log.Debug("fbUser ID: ", fbUser.Id)
 
-	user, token, err3 := configureUserWithToken(ctx, fbUser)
+	user, session, err3 := updateUserAtSession(db, ctx, fbUser)
 	if err3 != nil {
 		errors = append(errors, e.New("facebook", 1, err3.Error()))
-		response.Failed(c, errors, "Gan't get/save User and Token")
+		response.Failed(ctx, errors, "Gan't get/save User and Token")
 		return
 	}
 
@@ -72,80 +70,12 @@ func FB(c *gin.Context) {
 		TokenExpired int64  `json:"tokenExpired"`
 	}
 	output.UserId = user.Id
-	output.Token = token.Hash
-	output.TokenExpired = token.Expired
+	output.Token = session.Token.Hash
+	output.TokenExpired = session.Token.Expired
 
-	response.Success(c, output)
+	response.Success(ctx, output)
 }
 
-func configureUserWithToken(ctx appengine.Context, fbUser *facebookUser) (*model.User, *model.Token, error) {
-	log.Func(configureUserWithToken)
-	keys, users, err := model.GetUsersBy(ctx, "Fid=", fbUser.Id, 1)
-	if err != nil {
-		return nil, nil, err
-	}
-	if len(users) == 0 {
-		return createNewUserAndToken(ctx, fbUser)
-
-	} else {
-		user := &users[0]
-		userKey := keys[0]
-		_, t, err1 := model.GetTokenByUserId(ctx, user.Id)
-		if err1 != nil {
-			return nil, nil, err1
-		}
-
-		t.Generate()
-		_, err2 := model.SaveToken(ctx, t, userKey)
-		if err2 != nil {
-			return nil, nil, err2
-		}
-		return user, t, nil
-	}
-
-	//err1 := datastore.RunInTransaction(ctx, func(ctx appengine.Context) error {
-	//
-	//	users := []model.User{}
-	//	q := datastore.NewQuery("User").Ancestor(userKey(ctx)).Filter("Fib =",fbUser.Id).Limit(1)
-	//	keys, err := q.GetAll(ctx, &users)
-	//	if err != nil {
-	//		return err
-	//	}
-	//
-	//	if len(users) == 0 {
-	//
-	//
-	//
-	//	} else {
-	//
-	//
-	//	}
-	//
-	//	if err != nil {
-	//
-	//		log.Println("getUser: false\n", err.Error(),"\n")
-	//		return err
-	//	}
-	//	user = nil
-	//	log.Println("keys:\n", keys)
-	//	log.Println("users:\n", users)
-	//
-	//	return nil
-	//
-	//}, &datastore.TransactionOptions{
-	//	XG:       true,
-	//	Attempts: 3,
-	//})
-	//
-	//if err1 != nil {
-	//	return err1
-	//}
-
-}
-
-func userKey(ctx appengine.Context) *datastore.Key {
-	return datastore.NewKey(ctx, "User", "", 0, nil)
-}
 
 func facebookAuth(ctx appengine.Context, token string) (*facebookUser, error) {
 	log.Func(facebookAuth)
@@ -182,29 +112,70 @@ func facebookAuth(ctx appengine.Context, token string) (*facebookUser, error) {
 	return &user, nil
 }
 
-func createNewUserAndToken(ctx appengine.Context, fbUser *facebookUser) (*model.User, *model.Token, error) {
-	log.Func(createNewUserAndToken)
+func updateUserAtSession(db appengine.Context, ctx *gin.Context, fbUser *facebookUser) (*model.User, *model.Session, error) {
+	log.Func(updateUserAtSession)
+	keys, users, err := model.GetUsersBy(db, "Fid=", fbUser.Id, 1)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(users) == 0 {
+		return createNewUserWithNewSession(db, ctx, fbUser)
+
+	} else {
+		user := &users[0]
+		userKey := keys[0]
+		_, s, err1 := model.GetSessionByUserId(db, user.Id)
+		if err1 != nil {
+			return nil, nil, err1
+		}
+
+		s.Token.Generate()
+		_, err2 := model.SaveSession(db, s, userKey)
+		if err2 != nil {
+			return nil, nil, err2
+		}
+		return user, s, nil
+	}
+
+}
+
+func createNewUserWithNewSession(db appengine.Context, ctx *gin.Context, fbUser *facebookUser) (*model.User, *model.Session, error) {
+	log.Func(createNewUserWithNewSession)
 	var user model.User
 	user.Name = fbUser.Name
 	user.FirstName = fbUser.FirstName
 	user.LastName = fbUser.LastName
 	user.Email = fbUser.Email
+	user.Provider = c.ProviderTypeFB
 	if len(user.Email) > 0 {
 		user.EmailVerified = true
 	}
 	user.Fid = fbUser.Id
 
+	log.Debug("Try to create session")
+	var session model.Session
+	var device model.Device
+	if err := device.New(ctx); err != nil {
+		return nil, nil, err
+	}
 	var token model.Token
+	if err := token.New(ctx); err != nil {
+		return nil, nil, err
+	}
 	token.Generate()
 
-	err := datastore.RunInTransaction(ctx, func(ctx appengine.Context) error {
+	session.Device = device
+	session.Token = token
+	log.Debug("Session has been created")
 
+	err := datastore.RunInTransaction(db, func(ctx appengine.Context) error {
+		log.Debug("RunInTransaction")
 		k, err1 := model.SaveUser(ctx, &user)
 		if err1 != nil {
 			return err1
 		}
-		token.UserId = user.Id
-		_, err2 := model.SaveToken(ctx, &token, k)
+		session.UserId = user.Id
+		_, err2 := model.SaveSession(ctx, &session, k)
 		if err2 != nil {
 			return err2
 		}
@@ -218,133 +189,6 @@ func createNewUserAndToken(ctx appengine.Context, fbUser *facebookUser) (*model.
 	if err != nil {
 		return nil, nil, err
 	}
-	return &user, &token, nil
+	return &user, &session, nil
 
 }
-
-//func getUserCredentials(ctx appengine.Context,input *input) (*model.User, *model.Token, *e.Error) {
-//
-//	usr := new(model.User)
-//	tkn := new(model.Token)
-//
-//	err := datastore.RunInTransaction(ctx, func(ctx appengine.Context) error {
-//
-//		q1 := datastore.NewQuery("User").
-//		Ancestor(userKey(ctx)).Filter("Email=",input.Email).Limit(1)
-//
-//		q2 := datastore.NewQuery("User").
-//		Ancestor(userKey(ctx)).Filter("Password=", input.Password).Limit(1)
-//
-//		var emails []model.User
-//		k1, err1 := q1.GetAll(ctx, &emails)
-//		if err1 {
-//			return err1
-//		}
-//		log.Println("emails: ",k1)
-//
-//
-//
-//
-//
-//
-//		user.EmailVerified = false
-//		user.Created = time.Now().UTC().Unix()
-//
-//		k, err := saveUser(ctx, user)
-//		if err != nil {
-//			return err
-//		}
-//
-//		_, err2 := saveToken(ctx, token, k)
-//		if err2 != nil {
-//			return err2
-//		}
-//
-//		return nil
-//
-//	}, &datastore.TransactionOptions{
-//		XG:       true,
-//		Attempts: 3,
-//	})
-//
-//	if err != nil {
-//		return nil, nil, &e.New("no_user", 5, err.Error())
-//	}
-//	return usr, tkn, nil
-//}
-
-//func getToken(ctx appengine.Context, token *model.Token, user model.User) (*datastore.Key, error) {
-//
-//	var tokens []model.Token
-//	_, err := datastore.NewQuery("Token").
-//		Filter("__ID__ =", user.).
-//		Filter("Password=",input.Password).
-//		Limit(1).
-//		GetAll(ctx, users)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//
-//
-//
-//
-//
-//	token.UserId = parentKey.IntID()
-//	token.Generate()
-//
-//
-//
-//
-//	tk := datastore.NewIncompleteKey(ctx, "Token", parentKey)
-//	k, err := datastore.Put(ctx, tk, token)
-//	if err != nil {
-//		return nil, err
-//	}
-//	token.Id = k.IntID()
-//	return k, nil
-//
-//}
-
-//func getUser(ctx appengine.Context, input *input) (*model.User, error) {
-//
-//	var users []model.User
-//
-//	//var usr model.User
-//	_, err := datastore.NewQuery("User").
-//	//Ancestor(nil).
-//	//Filter("Email=",input.Email).
-//	//Filter("Password=",input.Password).
-//	//Limit(1).
-//		GetAll(ctx, &users)
-//	//atastore.Get(ctx,keys[0],&usr)
-//
-//	if err != nil {
-//
-//		log.Println("getUser: false\n", err.Error())
-//		return nil, err
-//	}
-//	//datastore.Get(ctx,keys[0],&usr)
-//
-//	if len(users) == 0 {
-//		return nil, errors.New("User not found")
-//	}
-//
-//	user := users[0]
-//	return &user, nil
-//	//
-//	//
-//	//
-//	//t := time.Now().UTC().Unix()
-//	//usr.Updated = t
-//	//usr.Created = t
-//	//usr.EmailVerified = false
-//	//
-//	//uk := datastore.NewIncompleteKey(ctx, "User", nil)
-//	//k, err := datastore.Put(ctx, uk, usr)
-//	//if err != nil {
-//	//	return nil, err
-//	//}
-//	//usr.Id = k.IntID()
-//	//return k, nil
-//}

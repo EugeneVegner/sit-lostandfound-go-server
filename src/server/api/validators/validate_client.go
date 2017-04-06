@@ -2,28 +2,23 @@ package validator
 
 import (
 	"gopkg.in/gin-gonic/gin.v1"
-	"src/server/constants"
 	e "src/server/errors"
+	c "src/server/constants"
 	"src/server/response"
 	"strconv"
 	"strings"
 )
 
-const (
-	kPlatform string = constants.ParamKeyPlatform
-	kAppVersion string = constants.ParamKeyAppVersion
-)
-
 func Client() gin.HandlerFunc {
-	return func(c *gin.Context) {
+	return func(ctx *gin.Context) {
 
 		var errors []e.Error
-		client := c.Request.Header.Get("Client")
+		client := ctx.Request.Header.Get("Client")
 		values := strings.Split(client, "/")
 		if len(values) != 3 {
 			errors = append(errors, e.New("header", e.ServerErrorClientHeader, "Invalid 'Client' header"))
-			response.Failed(c, errors, "Client's header is not exist or format is incorrect")
-			c.Abort()
+			response.Failed(ctx, errors, "Client's header is not exist or format is incorrect")
+			ctx.Abort()
 			return
 		}
 
@@ -34,26 +29,31 @@ func Client() gin.HandlerFunc {
 		val, err := strconv.ParseFloat(ver, 32)
 		if err != nil {
 			errors = append(errors, e.New("header", e.ServerErrorClientHeader, "Invalid client version"))
-			response.Failed(c, errors, "Can't parse version")
-			c.Abort()
+			response.Failed(ctx, errors, "Can't parse version")
+			ctx.Abort()
 
-		} else if float32(val) < constants.CurrentVersion {
-			response.NotSupported(c, "Current version bigger than value")
-			c.Abort()
+		} else if float32(val) < c.CurrentVersion {
+			response.NotSupported(ctx, "Current version bigger than value")
+			ctx.Abort()
 
-		} else if platform != constants.Android && platform != constants.IOS {
-			response.NotSupported(c, "Invalid a platform's value")
-			c.Abort()
+		} else if platform != c.Android && platform != c.IOS {
+			response.NotSupported(ctx, "Invalid a platform's value")
+			ctx.Abort()
 		}
 
 		// Configure parameters for Context
-		c.Params = append(c.Params, gin.Param{
-			Key: kPlatform,
+		ctx.Params = append(ctx.Params, gin.Param{
+			Key:   c.ParamKeyClientPlatform,
 			Value: platform,
 		})
-		c.Params = append(c.Params, gin.Param{
-			Key: kAppVersion,
+		ctx.Params = append(ctx.Params, gin.Param{
+			Key: c.ParamKeyClientVersion,
 			Value: ver,
 		})
+		//ctx.Params = append(ctx.Params, gin.Param{
+		//	Key: c.ParamKeyClientD,
+		//	Value: ver,
+		//})
+
 	}
 }

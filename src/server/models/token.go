@@ -1,6 +1,7 @@
 package model
 
 import (
+	"gopkg.in/gin-gonic/gin.v1"
 	"appengine"
 	"appengine/datastore"
 	"crypto/rand"
@@ -34,10 +35,9 @@ import (
 
 type Token struct {
 	Id        int64  `json:"id" datastore:"-"`
-	Hash       string `json:"hash"`
-	UserId    int64  `json:"userId"`
+	Hash      string `json:"hash"`
 	Updated   int64  `json:"updated"`
-	Generated int64	 `json:"generated"`
+	Generated int64  `json:"generated"`
 	Created   int64  `json:"created"`
 	Expired   int64  `json:"expired"`
 }
@@ -56,6 +56,13 @@ func (token *Token) key(ctx appengine.Context, parentKey *datastore.Key) *datast
 		return datastore.NewIncompleteKey(ctx, "Token", parentKey)
 	}
 	return datastore.NewKey(ctx, "Token", "", token.Id, parentKey)
+}
+
+func (token *Token) New(ctx *gin.Context) error {
+	t := time.Now().UTC().Unix()
+	token.Updated = t
+	token.Created = t
+	return nil
 }
 
 func SaveToken(ctx appengine.Context, token *Token, parentKey *datastore.Key) (*datastore.Key, error) {

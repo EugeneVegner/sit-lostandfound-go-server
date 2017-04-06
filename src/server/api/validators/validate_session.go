@@ -4,51 +4,56 @@ import (
 	"gopkg.in/gin-gonic/gin.v1"
 	"strings"
 	"src/server/response"
-	"strconv"
+	//"strconv"
 	c "src/server/constants"
-	e "src/server/errors"
+	//e "src/server/errors"
+	"src/server/models"
+	"appengine"
+	"appengine/datastore"
 )
 
 func Session() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 
-		var errors []e.Error
-		client := ctx.Request.Header.Get("Client")
-		values := strings.Split(client, "/")
-		if len(values) != 3 {
-			errors = append(errors, e.New("header", e.ServerErrorClientHeader, "Invalid 'Client' header"))
-			response.Failed(ctx, errors, "Client's header is not exist or format is incorrect")
+		token_key := ctx.Request.Header.Get("Authorization")
+		if len(strings.TrimSpace(token_key)) == 0 {
+			response.InvalidToken(ctx, "'Authorization' header not exist or Session is not exist")
 			ctx.Abort()
 			return
 		}
 
-		ver := strings.TrimSpace(strings.ToUpper(values[0]))
-		platform := strings.TrimSpace(strings.ToUpper(values[1]))
-		//_ := strings.TrimSpace(values[2])
+		var sessions []model.Session
+		ctx_req := appengine.NewContext(ctx.Request)
+		q := datastore.NewQuery("Session").Filter("Token =", token_key).Limit(1)
 
-		val, err := strconv.ParseFloat(ver, 32)
+		_, err := q.GetAll(ctx_req, &sessions)
 		if err != nil {
-			errors = append(errors, e.New("header", e.ServerErrorClientHeader, "Invalid client version"))
-			response.Failed(ctx, errors, "Can't parse version")
+			response.InvalidToken(ctx, "Session query error: "+err.Error())
 			ctx.Abort()
-
-		} else if float32(val) < c.CurrentVersion {
-			response.NotSupported(ctx, "Current version bigger than value")
+			return
+		}
+		if len(sessions) == 0 {
+			response.InvalidToken(ctx, "Session not found")
 			ctx.Abort()
-
-		} else if platform != c.Android && platform != c.IOS {
-			response.NotSupported(ctx, "Invalid a platform's value")
+			return
+		}
+		session := sessions[0]
+		if session.Token.IsExpired() {
+			response.ExpiredToken(ctx, "Token is expired")
 			ctx.Abort()
+			return
 		}
 
 		// Configure parameters for Context
 		ctx.Params = append(ctx.Params, gin.Param{
-			Key: kPlatform,
-			Value: platform,
+			Key: c.ParamKeyUserId,
+			Value: string(session.UserId),
+
 		})
 		ctx.Params = append(ctx.Params, gin.Param{
-			Key: kAppVersion,
-			Value: ver,
+			Key: c.ParamKeySessionToken,
+			Value: session.Token.Hash,
 		})
+
 	}
 }

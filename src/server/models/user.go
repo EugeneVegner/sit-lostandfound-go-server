@@ -54,8 +54,7 @@ type User struct {
 	Password      string `json:"password" valid:"length(8|24),required"`
 	EmailVerified bool   `json:"emailVerified"`
 	Fid           string `json:"fid"`
-	DeviceToken   string `json:"deviceToken"`
-	Platform      string `json:"platform"`
+	Provider      string `json:"provider"`
 	Created       int64  `json:"created"`
 	Updated       int64  `json:"updated"`
 }

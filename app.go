@@ -10,9 +10,10 @@ import (
 	//"src/server/api"
 	"net/http"
 	"src/server/api/handlers/auth"
-	"src/server/api/validators"
+	validate "src/server/api/validators"
 
 	r "src/server/router"
+	//"gopkg.in/go-playground/validator.v8"
 )
 
 func init() {
@@ -22,17 +23,13 @@ func init() {
 
 	//router.Use(gin.Logger())
 	//router.Use(gin.Recovery())
-	router.Use(validator.Client())
-	//router.Use(Logger())
-
+	router.Use(validate.Client())
 	v1 := router.Group("/api/v1")
 	{
-
 		pingV1 := v1.Group("/ping")
 		{
 			pingV1.POST("/test", r.Session(ping.Test))
 		}
-
 
 		authV1 := v1.Group("/auth")
 		{
@@ -43,14 +40,14 @@ func init() {
 		}
 
 		authTokenV1 := v1.Group("/auth")
-		authTokenV1.Use(validator.Token())
+		authTokenV1.Use(validate.Session())
 		{
 			authTokenV1.POST("/sign_out", signUp.POST)
 			authTokenV1.POST("/reset", signUp.POST)
 		}
 
 		sysV1 := v1.Group("/sys")
-		sysV1.Use(validator.Token())
+		sysV1.Use(validate.Session())
 		{
 			sysV1.POST("/fb", auth.FB)
 			sysV1.POST("/sign_in", signIn.POST)
@@ -58,7 +55,7 @@ func init() {
 
 
 		usersV1 := v1.Group("/users")
-		usersV1.Use(validator.Token())
+		usersV1.Use(validate.Session())
 		{
 			usersV1.GET("/:id", signUp.POST)
 			usersV1.GET("/", signUp.POST)
@@ -67,7 +64,7 @@ func init() {
 			usersV1.DELETE("/", signUp.POST)
 		}
 		adsV1 := v1.Group("/ads")
-		adsV1.Use(validator.Token())
+		adsV1.Use(validate.Session())
 		{
 			adsV1.GET("/:id", signUp.POST)
 			adsV1.GET("/", signUp.POST)

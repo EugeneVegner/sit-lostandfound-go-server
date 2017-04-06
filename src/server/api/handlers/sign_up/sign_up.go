@@ -88,15 +88,17 @@ func createNewUserWithToken(ctx appengine.Context, user *model.User, token *mode
 
 func saveToken(ctx appengine.Context, token *model.Token, parentKey *datastore.Key) (*datastore.Key, error) {
 
-	token.UserId = parentKey.IntID()
-	token.Generate()
-	tk := datastore.NewIncompleteKey(ctx, "Token", parentKey)
-	k, err := datastore.Put(ctx, tk, token)
-	if err != nil {
-		return nil, err
-	}
-	token.Id = k.IntID()
-	return k, nil
+	//token.UserId = parentKey.IntID()
+	//token.Generate()
+	//tk := datastore.NewIncompleteKey(ctx, "Token", parentKey)
+	//k, err := datastore.Put(ctx, tk, token)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//token.Id = k.IntID()
+	//return k, nil
+
+	return nil, nil
 
 }
 
