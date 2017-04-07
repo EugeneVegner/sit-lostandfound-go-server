@@ -17,8 +17,8 @@ import (
 
 type input struct {
 	FacebookToken string `binding:"required"`
-	DeviceToken   string
 	DeviceId      string `binding:"required"`
+	DeviceToken   string
 }
 
 type facebookUser struct {
@@ -62,8 +62,8 @@ func FB(ctx *gin.Context) {
 		u, s, err2 := createNewUserWithNewSession(db, ctx, fbUser, input.DeviceId, input.DeviceToken)
 		if err2 != nil {
 			log.Debug("err2: ", err2.Error())
-			errors = append(errors, e.New("err2", e.ServerErrorNewEntity, err2.Error()))
-			response.Failed(ctx, errors, err2.Error())
+			//errors = append(errors, e.New("err2", e.ServerErrorNewEntity, err2.Error()))
+			response.Failed(ctx, utils.ReflectError(err2), err2.Error())
 			return
 		}
 		user = u
@@ -73,8 +73,8 @@ func FB(ctx *gin.Context) {
 		_, s, err3 := api.GetAndUpdateSessionIfNeeded(db, userKey, input.DeviceId, input.DeviceToken)
 		if err3 != nil {
 			log.Debug("err3: ", err3.Error())
-			errors = append(errors, e.New("err3", e.ServerErrorNewEntity, err3.Error()))
-			response.Failed(ctx, errors, err3.Error())
+			//errors = utils.ReflectError(err3)
+			response.Failed(ctx, utils.ReflectError(err3), err3.Error())
 			return
 		}
 		session = s

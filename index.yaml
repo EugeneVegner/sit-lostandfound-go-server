@@ -12,6 +12,12 @@ indexes:
 
 - kind: Session
   properties:
+  - name: DeviceId
+  - name: UserId
+  - name: Created
+
+- kind: Session
+  properties:
   - name: UserId
   - name: Created
 

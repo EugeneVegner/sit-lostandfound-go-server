@@ -43,3 +43,21 @@ func ValidateEntity(ctx *gin.Context, entity interface{}) []e.Error {
 	return nil
 }
 
+func ReflectError(err error) []e.Error {
+	var errors []e.Error
+	if err != nil {
+		log.Debug("invalidate: ", err)
+		fields := strings.Split(err.Error(), ";")
+		for _, element := range fields {
+			values := strings.Split(element, ":")
+			if len(values) == 2 {
+				tag := strings.TrimSpace(strings.ToLower(values[0]))
+				msg := strings.TrimSpace(values[1])
+				errors = append(errors, e.New(tag, e.ServerErrorInvalidStructure, msg))
+			}
+		}
+		return errors
+	}
+	return nil
+}
+

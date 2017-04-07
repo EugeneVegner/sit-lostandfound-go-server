@@ -12,14 +12,14 @@ import (
 
 type Session struct {
 	Id          int64  `json:"id" datastore:"-"`
-	Token       string `json:"token"`
-	DeviceId    string `json:"deviceId"`
+	Token       string `json:"token" valid:"required"`
+	DeviceId    string `json:"deviceId" valid:"required"`
 	DeviceToken string `json:"deviceToken"`
-	Platform    string `json:"platform"`
-	UserId      int64  `json:"userId"`
+	Platform    string `json:"platform" valid:"required"`
+	UserId      int64  `json:"userId" valid:"required"`
 	Updated     int64  `json:"updated"`
 	Created     int64  `json:"created"`
-	Expired     int64  `json:"expired"`
+	Expired     int64  `json:"expired" valid:"required"`
 }
 
 func (session *Session) key(db appengine.Context, parentKey *datastore.Key) *datastore.Key {
@@ -72,20 +72,24 @@ func GetSessionByUserIdDeviceId(ctx appengine.Context, userId interface{}, devic
 		Filter("DeviceId=", deviceId).
 		Order("Created").
 		Limit(1)
-	ks, err := q.GetAll(ctx, &sessions)
+	keys, err := q.GetAll(ctx, &sessions)
 	if err != nil {
 		return nil, nil, err
 	}
 	for i := 0; i < len(sessions); i++ {
-		sessions[i].Id = ks[i].IntID()
+		sessions[i].Id = keys[i].IntID()
 	}
-	return ks[0], &sessions[0], nil
+	if len(sessions) > 0 && len(keys) > 0 {
+		return keys[0], &sessions[0], nil
+	}
+	log.Debug("No Sessions, No Keys ")
+	return nil, nil, nil
 }
 
 // Methods
 
 func (session *Session) GenerateToken() string {
-	log.Func("GenerateToken")
+	log.Debug("Generate token")
 	b := make([]byte, TokenLength)
 	rand.Read(b)
 
@@ -93,7 +97,7 @@ func (session *Session) GenerateToken() string {
 	session.Updated = currentTime.Unix()
 	session.Expired = currentTime.Add(TokenDuration).Unix()
 	session.Token = base64.StdEncoding.EncodeToString(b)
-
+	log.Debug("Token is: ", session.Token)
 	return session.Token
 }
 

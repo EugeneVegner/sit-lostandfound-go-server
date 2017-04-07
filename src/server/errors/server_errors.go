@@ -42,7 +42,7 @@ const (
 )
 
 type Error struct {
-	Tag     string `json:"tag"`
+	Name    string `json:"name"`
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 }

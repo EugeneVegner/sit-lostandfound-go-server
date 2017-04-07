@@ -130,9 +130,14 @@ func GetUserBy(ctx appengine.Context, filter string, value interface{}) (*datast
 	log.Func(GetUserBy)
 	keys, users, err := GetUsersBy(ctx, filter, value, 1)
 	if err != nil {
+		log.DebugError("GetUserBy error: ", err)
 		return nil, nil, err
 	}
-	return keys[0], &users[0], nil
+	if len(users) > 0 && len(keys) > 0 {
+		return keys[0], &users[0], nil
+	}
+	log.Debug("No Users, No Keys ")
+	return nil, nil, nil
 }
 
 func DecodeUser(r io.ReadCloser) (*User, error) {
