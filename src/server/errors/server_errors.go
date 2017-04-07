@@ -51,8 +51,8 @@ func Unknown() Error {
 	return Error{"unknown", ServerErrorUnknown, "Unknown error"}
 }
 
-func New(tag string, code int, message string) Error {
-	return Error{tag, code, message}
+func New(name string, code int, message string) Error {
+	return Error{name, code, message}
 }
 
 // Error types
