@@ -27,6 +27,10 @@ func GetEntityBy(ctx appengine.Context, entityName string, filter string, value 
 	return ks[0], &sessions[0], nil
 }
 
+
+
+
+
 //func SaveEntity(ctx appengine.Context, entity interface{}, parentKey *datastore.Key) (*datastore.Key, error) {
 //	log.Func(SaveSession)
 //	entity.Updated = time.Now().UTC().Unix()

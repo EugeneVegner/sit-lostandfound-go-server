@@ -1,10 +1,7 @@
 package model
 
 import (
-	"fmt"
-	"github.com/gorilla/mux"
-	"net/http"
-	//"strings"
+	"gopkg.in/gin-gonic/gin.v1"
 	"appengine"
 	"appengine/datastore"
 	"errors"
@@ -12,7 +9,6 @@ import (
 	//"os"
 	"encoding/json"
 	"time"
-	//"go/validate_token"
 	log "src/server/logger"
 )
 
@@ -59,20 +55,28 @@ type User struct {
 	Updated       int64  `json:"updated"`
 }
 
-func (user *User) key(ctx appengine.Context) *datastore.Key {
+func (user *User) key(db appengine.Context) *datastore.Key {
+	t := time.Now().UTC().Unix()
+	user.Updated = t
+
 	if user.Id == 0 {
-		t := time.Now().UTC().Unix()
-		user.Updated = t
 		user.Created = t
-		k := datastore.NewIncompleteKey(ctx, "User", nil)
-		log.Debug("new incomplete key: ", k)
-		return k
+		log.Debug("User: NewIncompleteKey")
+		return datastore.NewIncompleteKey(db, "User", nil)
 	}
-	k := datastore.NewKey(ctx, "User", "", user.Id, nil)
-	log.Debug("new key: ", k)
-	return k
+	log.Debug("User: NewKey")
+	return datastore.NewKey(db, "User", "", user.Id, nil)
 }
 
+// TODO: Should be DEPRECATED
+func (user *User) New(ctx *gin.Context) error {
+	t := time.Now().UTC().Unix()
+	user.Updated = t
+	user.Created = t
+	return nil
+}
+
+// TODO: Should be DEPRECATED
 func SaveUser(ctx appengine.Context, user *User) (*datastore.Key, error) {
 	log.Func(SaveUser)
 	user.Updated = time.Now().UTC().Unix()
@@ -83,6 +87,17 @@ func SaveUser(ctx appengine.Context, user *User) (*datastore.Key, error) {
 	user.Id = k.IntID()
 	return k, nil
 }
+
+func (user *User) Save(db appengine.Context) (*datastore.Key, error) {
+	log.Debug("User: Save")
+	k, err := datastore.Put(db, user.key(db), user)
+	if err != nil {
+		return nil, err
+	}
+	user.Id = k.IntID()
+	return k, nil
+}
+
 
 func GetUsersBy(ctx appengine.Context, filter string, value interface{}, limit int) ([]*datastore.Key, []User, error) {
 	log.Func(GetUsersBy)
@@ -116,9 +131,6 @@ func GetUserBy(ctx appengine.Context, filter string, value interface{}) (*datast
 	keys, users, err := GetUsersBy(ctx, filter, value, 1)
 	if err != nil {
 		return nil, nil, err
-	}
-	if len(users) == 0 {
-		return nil, nil, errors.New("User not found")
 	}
 	return keys[0], &users[0], nil
 }
@@ -318,19 +330,44 @@ func GetUserByEmailUsername(ctx appengine.Context, username string, email string
 //
 //	fmt.Fprint(w, "Welcome!\n")
 //}
-func GetUser(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Welcome!\n")
-}
-func UpdateUser(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Welcome!\n")
-}
-func HideUser(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Welcome!\n")
-}
-func DeleteUser(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Ping method!\n", r.Method)
+//func GetUser(w http.ResponseWriter, r *http.Request) {
+//	fmt.Fprint(w, "Welcome!\n")
+//}
+//func UpdateUser(w http.ResponseWriter, r *http.Request) {
+//	fmt.Fprint(w, "Welcome!\n")
+//}
+//func HideUser(w http.ResponseWriter, r *http.Request) {
+//	fmt.Fprint(w, "Welcome!\n")
+//}
+//func DeleteUser(w http.ResponseWriter, r *http.Request) {
+//	fmt.Fprint(w, "Ping method!\n", r.Method)
+//
+//	vars := mux.Vars(r)
+//	todoId := vars["id"]
+//	fmt.Fprintln(w, "\nPing show:", todoId)
+//}
 
-	vars := mux.Vars(r)
-	todoId := vars["id"]
-	fmt.Fprintln(w, "\nPing show:", todoId)
-}
+
+//func (user *User) GetBy(db appengine.Context, filter string, value interface{}) (*datastore.Key, *User, error) {
+//	log.Debug("User: GetBy")
+//	keys, users, err := GetUsersBy(db, filter, value, 1)
+//	if err != nil {
+//		return nil, err
+//	}
+//	if len(users) == 0 {
+//		return nil, errors.New("User not found")
+//	}
+//	k := keys[0]
+//	us := users[0]
+//
+//	user = us
+//	user.Id = k.IntID()
+//	return k, nil
+//}
+
+
+
+
+
+
+

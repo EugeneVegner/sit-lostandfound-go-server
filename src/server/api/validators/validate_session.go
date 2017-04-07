@@ -4,9 +4,7 @@ import (
 	"gopkg.in/gin-gonic/gin.v1"
 	"strings"
 	"src/server/response"
-	//"strconv"
 	c "src/server/constants"
-	//e "src/server/errors"
 	"src/server/models"
 	"appengine"
 	"appengine/datastore"
@@ -38,7 +36,7 @@ func Session() gin.HandlerFunc {
 			return
 		}
 		session := sessions[0]
-		if session.Token.IsExpired() {
+		if session.IsExpired() {
 			response.ExpiredToken(ctx, "Token is expired")
 			ctx.Abort()
 			return
@@ -52,7 +50,7 @@ func Session() gin.HandlerFunc {
 		})
 		ctx.Params = append(ctx.Params, gin.Param{
 			Key: c.ParamKeySessionToken,
-			Value: session.Token.Hash,
+			Value: session.Token,
 		})
 
 	}

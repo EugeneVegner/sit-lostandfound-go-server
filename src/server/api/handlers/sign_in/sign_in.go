@@ -3,248 +3,50 @@ package sign_in_handler
 import (
 	"gopkg.in/gin-gonic/gin.v1"
 	"src/server/response"
-
-	//"time"
 	"appengine"
-	"appengine/datastore"
 	e "src/server/errors"
 	"src/server/models"
 	"src/server/utils"
-	//"github.com/asaskevich/govalidator"
-	"errors"
-	"log"
-	//"go/constant"
-	//"time"
+	log "src/server/logger"
+	"src/server/api"
 )
 
 type input struct {
-	Email    string `json:"email, required, noExtraFields" valid:"email,required" binding:"required"`
-	Password string `json:"password," valid:"length(8|24),required" binding:"required"`
+	Email    string `valid:"email,required" binding:"required"`
+	Password string `valid:"length(8|24),required" binding:"required"`
+	DeviceId string `valid:"required" binding:"required"`
+	DeviceToken string
 }
 
-func POST(c *gin.Context) {
-
+func POST(ctx *gin.Context) {
+	log.Func(POST)
 	var input input
-	var user model.User
-	var token model.Token
-
-	errors := utils.EncodeBody(c, &input)
+	errors := utils.EncodeBody(ctx, &input)
 	if errors != nil {
-		response.Failed(c, errors, "The body can't be encoded")
+		response.Failed(ctx, errors, "The body can't be encoded")
 		return
 	}
 
-	ctx := appengine.NewContext(c.Request)
-	err2 := getUserWithToken(ctx, &input, &user, &token)
-	if err2 != nil {
-		errors = append(errors, e.New("auth_user_error", 1, err2.Error()))
-		response.Failed(c, errors, "User and token not found")
-		return
-	}
-
-	var output struct {
-		Users  []model.User  `json:"users"`
-		Tokens []model.Token `json:"tokens"`
-	}
-	output.Users = append(output.Users, user)
-	output.Tokens = append(output.Tokens, token)
-
-	response.Success(c, output)
-
-}
-
-func getUserWithToken(ctx appengine.Context, input *input, user *model.User, token *model.Token) error {
-
-	//var users []model.User
-
-	users := []model.User{}
-
-	log.Println("input.Email: ", input.Email)
-
-	q := datastore.NewQuery("User").
-		//Ancestor(userKey(ctx)).
-		Filter("Email=", input.Email)
-	//Order("Created")
-	//Filter("Password=",input.Password).
-	//Limit(1)
-
-	_, err := q.GetAll(ctx, &users)
-
-	if err != nil {
-
-		log.Println("getUser: false\n", err.Error(), "\n")
-		return err
-	}
-	//user = nil
-	//log.Println("keys:\n", keys)
-	//log.Println("users:\n", users)
-
-	err1 := datastore.RunInTransaction(ctx, func(ctx appengine.Context) error {
-
-		users := []model.User{}
-
-		log.Println("input.Email: ", input.Email)
-
-		q := datastore.NewQuery("User").
-			Ancestor(userKey(ctx)).
-			Filter("Email=", input.Email)
-		//Order("Created")
-		//Filter("Password=",input.Password).
-		//Limit(1)
-
-		keys, err := q.GetAll(ctx, &users)
-
-		if err != nil {
-
-			log.Println("getUser: false\n", err.Error(), "\n")
-			return err
-		}
-		user = nil
-		log.Println("keys:\n", keys)
-		log.Println("users:\n", users)
-
-		return nil
-
-	}, &datastore.TransactionOptions{
-		XG:       true,
-		Attempts: 3,
-	})
-
+	db := appengine.NewContext(ctx.Request)
+	userKey, user, err1 := model.GetUserBy(db, "Email=", input.Email)
 	if err1 != nil {
-		return err1
+		log.Debug("err1: ",err1.Error())
+		errors = append(errors, e.New("user", e.ServerErrorEmailNotFound, err1.Error()))
+		response.Failed(ctx, errors, "User with email not found")
+		return
 	}
 
-	return nil
-
-}
-
-func userKey(ctx appengine.Context) *datastore.Key {
-	return datastore.NewKey(ctx, "User", "", 0, nil)
-}
-
-//func getUserCredentials(ctx appengine.Context,input *input) (*model.User, *model.Token, *e.Error) {
-//
-//	usr := new(model.User)
-//	tkn := new(model.Token)
-//
-//	err := datastore.RunInTransaction(ctx, func(ctx appengine.Context) error {
-//
-//		q1 := datastore.NewQuery("User").
-//		Ancestor(userKey(ctx)).Filter("Email=",input.Email).Limit(1)
-//
-//		q2 := datastore.NewQuery("User").
-//		Ancestor(userKey(ctx)).Filter("Password=", input.Password).Limit(1)
-//
-//		var emails []model.User
-//		k1, err1 := q1.GetAll(ctx, &emails)
-//		if err1 {
-//			return err1
-//		}
-//		log.Println("emails: ",k1)
-//
-//
-//
-//
-//
-//
-//		user.EmailVerified = false
-//		user.Created = time.Now().UTC().Unix()
-//
-//		k, err := saveUser(ctx, user)
-//		if err != nil {
-//			return err
-//		}
-//
-//		_, err2 := saveToken(ctx, token, k)
-//		if err2 != nil {
-//			return err2
-//		}
-//
-//		return nil
-//
-//	}, &datastore.TransactionOptions{
-//		XG:       true,
-//		Attempts: 3,
-//	})
-//
-//	if err != nil {
-//		return nil, nil, &e.New("no_user", 5, err.Error())
-//	}
-//	return usr, tkn, nil
-//}
-
-//func getToken(ctx appengine.Context, token *model.Token, user model.User) (*datastore.Key, error) {
-//
-//	var tokens []model.Token
-//	_, err := datastore.NewQuery("Token").
-//		Filter("__ID__ =", user.).
-//		Filter("Password=",input.Password).
-//		Limit(1).
-//		GetAll(ctx, users)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//
-//
-//
-//
-//
-//	token.UserId = parentKey.IntID()
-//	token.Generate()
-//
-//
-//
-//
-//	tk := datastore.NewIncompleteKey(ctx, "Token", parentKey)
-//	k, err := datastore.Put(ctx, tk, token)
-//	if err != nil {
-//		return nil, err
-//	}
-//	token.Id = k.IntID()
-//	return k, nil
-//
-//}
-
-func getUser(ctx appengine.Context, input *input) (*model.User, error) {
-
-	var users []model.User
-
-	//var usr model.User
-	_, err := datastore.NewQuery("User").
-		//Ancestor(nil).
-		//Filter("Email=",input.Email).
-		//Filter("Password=",input.Password).
-		//Limit(1).
-		GetAll(ctx, &users)
-	//atastore.Get(ctx,keys[0],&usr)
-
-	if err != nil {
-
-		log.Println("getUser: false\n", err.Error())
-		return nil, err
-	}
-	//datastore.Get(ctx,keys[0],&usr)
-
-	if len(users) == 0 {
-		return nil, errors.New("User not found")
+	_, session, err2 := api.GetAndUpdateSessionIfNeeded(db, userKey, input.DeviceId, input.DeviceToken)
+	if err2 != nil {
+		log.Debug("err2: ",err2.Error())
+		errors = append(errors, e.New("user", e.ServerErrorSessionNotFound, err2.Error()))
+		response.Failed(ctx, errors, "Session error")
+		return
 	}
 
-	user := users[0]
-	return &user, nil
-	//
-	//
-	//
-	//t := time.Now().UTC().Unix()
-	//usr.Updated = t
-	//usr.Created = t
-	//usr.EmailVerified = false
-	//
-	//uk := datastore.NewIncompleteKey(ctx, "User", nil)
-	//k, err := datastore.Put(ctx, uk, usr)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//usr.Id = k.IntID()
-	//return k, nil
+	var output api.AuthOutput
+	output.UserId = user.Id
+	output.Token = session.Token
+	output.Expired = session.Expired
+	response.Success(ctx, output)
 }

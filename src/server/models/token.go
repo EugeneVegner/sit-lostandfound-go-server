@@ -143,3 +143,7 @@ func GetTokenBy(ctx appengine.Context, filter string, value interface{}) (*datas
 	}
 	return ks[0], &tokens[0], nil
 }
+
+func (token *Token) Save() {
+
+}
