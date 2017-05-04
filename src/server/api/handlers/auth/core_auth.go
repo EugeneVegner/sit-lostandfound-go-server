@@ -70,7 +70,13 @@ func FB(ctx *gin.Context) {
 		session = s
 
 	} else {
-		_, s, err3 := api.GetAndUpdateSessionIfNeeded(db, userKey, input.DeviceId, input.DeviceToken)
+		_, s, err3 := api.GetAndUpdateSessionIfNeeded(
+			db,
+			userKey,
+			input.DeviceId,
+			input.DeviceToken,
+			ctx.Param(c.ParamKeyClientPlatform))
+
 		if err3 != nil {
 			log.Debug("err3: ", err3.Error())
 			//errors = utils.ReflectError(err3)
@@ -130,13 +136,18 @@ func createNewUserWithNewSession(db appengine.Context, ctx *gin.Context, fbUser 
 
 	log.Debug("Try to create session")
 	var session model.Session
-	err := datastore.RunInTransaction(db, func(ctx appengine.Context) error {
+	err := datastore.RunInTransaction(db, func(db appengine.Context) error {
 		log.Debug("RunInTransaction")
-		userKey, err1 := model.SaveUser(ctx, &user)
+		userKey, err1 := model.SaveUser(db, &user)
 		if err1 != nil {
 			return err1
 		}
-		_, s, err2 := api.GetAndUpdateSessionIfNeeded(db, userKey, deviceId, deviceToken)
+		_, s, err2 := api.GetAndUpdateSessionIfNeeded(
+			db,
+			userKey,
+			deviceId,
+			deviceToken,
+			ctx.Param(c.ParamKeyClientPlatform))
 		if err2 != nil {
 			log.Debug("err2: ", err2.Error())
 			return err2

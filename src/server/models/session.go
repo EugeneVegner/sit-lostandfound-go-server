@@ -13,7 +13,7 @@ import (
 type Session struct {
 	Id          int64  `json:"id" datastore:"-"`
 	Token       string `json:"token" valid:"required"`
-	DeviceId    string `json:"deviceId" valid:"required"`
+	DeviceId    string `json:"deviceId" valid:"deviceId, required"`
 	DeviceToken string `json:"deviceToken"`
 	Platform    string `json:"platform" valid:"required"`
 	UserId      int64  `json:"userId" valid:"required"`
@@ -50,7 +50,10 @@ func (session *Session) Save(db appengine.Context, parentKey *datastore.Key) (*d
 func GetSessionBy(ctx appengine.Context, filter string, value interface{}) (*datastore.Key, *Session, error) {
 	log.Func(GetSessionBy)
 	var sessions []Session
-	q := datastore.NewQuery("Session").Filter(filter, value).Order("Created").Limit(1)
+	q := datastore.NewQuery("Session").
+		Filter(filter, value).
+		Order("Created").
+		Limit(1)
 	ks, err := q.GetAll(ctx, &sessions)
 	if err != nil {
 		return nil, nil, err
@@ -64,11 +67,12 @@ func GetSessionBy(ctx appengine.Context, filter string, value interface{}) (*dat
 	return ks[0], &sessions[0], nil
 }
 
-func GetSessionByUserIdDeviceId(ctx appengine.Context, userId interface{}, deviceId interface{}) (*datastore.Key, *Session, error) {
-	log.Func(GetSessionByUserIdDeviceId)
+func GetSessionByUserKeyAndDeviceId(ctx appengine.Context, userKey *datastore.Key, deviceId interface{}) (*datastore.Key, *Session, error) {
+	log.Func(GetSessionByUserKeyAndDeviceId)
 	var sessions []Session
 	q := datastore.NewQuery("Session").
-		Filter("UserId=", userId).
+		Ancestor(userKey).
+		Filter("UserId=", userKey.IntID()).
 		Filter("DeviceId=", deviceId).
 		Order("Created").
 		Limit(1)

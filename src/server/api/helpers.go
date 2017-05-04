@@ -15,19 +15,29 @@ type AuthOutput struct {
 	Expired int64 `json:"expired, required" binding:"required"`
 }
 
-func GetAndUpdateSessionIfNeeded(db appengine.Context, userKey *datastore.Key, deviceId string, deviceToken string) (*datastore.Key, *model.Session, error)  {
+func GetAndUpdateSessionIfNeeded(
+	db appengine.Context,
+	userKey *datastore.Key,
+	deviceId string,
+	deviceToken string,
+	platform string) (*datastore.Key, *model.Session, error)  {
+
 	log.Func(GetAndUpdateSessionIfNeeded)
-	_, session, err1 := model.GetSessionByUserIdDeviceId(db, userKey.IntID(), deviceId)
+
+	log.Debug("Try to get session ", userKey.Encode() )
+	_, session, err1 := model.GetSessionByUserKeyAndDeviceId(db, userKey, deviceId)
 	if err1 != nil {
 		log.Debug("err1: ",err1.Error())
 		return nil, nil, err1
 	}
+	log.Debug("Session not found")
 
 	if session == nil {
 		log.Debug("session nil: ","Session not found. Try to create new one")
 		session = new(model.Session)
 		session.UserId = userKey.IntID()
 		session.DeviceId = deviceId
+		session.Platform = platform
 	}
 	session.GenerateToken()
 	session.DeviceToken = deviceToken

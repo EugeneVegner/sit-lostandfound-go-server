@@ -21,9 +21,21 @@ indexes:
   - name: UserId
   - name: Created
 
+- kind: Session
+  ancestor: yes
+  properties:
+  - name: DeviceId
+  - name: UserId
+  - name: Created
+
 - kind: Token
   properties:
   - name: UserId
+  - name: Created
+
+- kind: User
+  properties:
+  - name: Email
   - name: Created
 
 - kind: User

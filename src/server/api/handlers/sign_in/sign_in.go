@@ -5,6 +5,7 @@ import (
 	"src/server/response"
 	"appengine"
 	e "src/server/errors"
+	c "src/server/constants"
 	"src/server/models"
 	"src/server/utils"
 	log "src/server/logger"
@@ -35,8 +36,21 @@ func POST(ctx *gin.Context) {
 		response.Failed(ctx, errors, "User with email not found")
 		return
 	}
+	if user == nil{
+		log.Debug("User not found: nil")
+		errors = append(errors, e.New("user", e.ServerErrorUserNotFound, "User not found"))
+		response.Failed(ctx, errors, "User with email not found")
+		return
+	}
 
-	_, session, err2 := api.GetAndUpdateSessionIfNeeded(db, userKey, input.DeviceId, input.DeviceToken)
+	log.Debug("Try GetAndUpdateSessionIfNeeded ", userKey.Encode())
+	_, session, err2 := api.GetAndUpdateSessionIfNeeded(
+		db,
+		userKey,
+		input.DeviceId,
+		input.DeviceToken,
+		ctx.Param(c.ParamKeyClientPlatform))
+
 	if err2 != nil {
 		log.Debug("err2: ",err2.Error())
 		errors = append(errors, e.New("user", e.ServerErrorSessionNotFound, err2.Error()))

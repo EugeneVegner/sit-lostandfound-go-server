@@ -5,11 +5,13 @@ import (
 	"appengine"
 	"appengine/datastore"
 	e "src/server/errors"
+	c "src/server/constants"
 	"src/server/models"
 	"src/server/response"
 	"src/server/api"
 	log "src/server/logger"
 	"src/server/utils"
+	"github.com/asaskevich/govalidator"
 )
 
 type input struct {
@@ -46,16 +48,22 @@ func POST(ctx *gin.Context) {
 	}
 
 	var user model.User
+	user.Email = input.Email
+	user.EmailVerified = false
+	user.FirstName = input.FirstName
+	user.LastName = input.SecondName
+	user.Name = user.FirstName + " " + user.LastName
+	user.Password = input.Password
+
+	if _, err := govalidator.ValidateStruct(user); err != nil {
+		response.Failed(ctx, utils.ReflectError(err), "User object is invalid")
+		return
+	}
+
 	var session *model.Session
 
 	err := datastore.RunInTransaction(db, func(db appengine.Context) error {
 		log.Debug("RunInTransaction")
-		user.Email = input.Email
-		user.EmailVerified = false
-		user.FirstName = input.FirstName
-		user.LastName = input.SecondName
-		user.Name = user.FirstName + " " + user.LastName
-		user.Password = input.Password
 
 		userKey, err1 := model.SaveUser(db, &user)
 		if err1 != nil {
@@ -63,7 +71,13 @@ func POST(ctx *gin.Context) {
 			return err1
 		}
 
-		_, s, err2 := api.GetAndUpdateSessionIfNeeded(db, userKey, input.DeviceId, input.DeviceToken)
+		_, s, err2 := api.GetAndUpdateSessionIfNeeded(
+			db,
+			userKey,
+			input.DeviceId,
+			input.DeviceToken,
+			ctx.Param(c.ParamKeyClientPlatform))
+
 		if err2 != nil {
 			log.Debug("err2: ",err2.Error())
 			return err2

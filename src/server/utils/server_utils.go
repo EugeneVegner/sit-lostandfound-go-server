@@ -10,6 +10,8 @@ import (
 	"github.com/asaskevich/govalidator"
 	log "src/server/logger"
 	"strings"
+	"unicode/utf8"
+	"unicode"
 )
 
 func EncodeBody(ctx *gin.Context, input interface{}) []e.Error {
@@ -33,7 +35,8 @@ func ValidateEntity(ctx *gin.Context, entity interface{}) []e.Error {
 		for _, element := range fields {
 			values := strings.Split(element, ":")
 			if len(values) == 2 {
-				tag := strings.TrimSpace(strings.ToLower(values[0]))
+				tag := strings.TrimSpace(ToLowerFirst(values[0]))
+				//tag := strings.TrimSpace(values[0])
 				msg := strings.TrimSpace(values[1])
 				errors = append(errors, e.New(tag, e.ServerErrorInvalidStructure, msg))
 			}
@@ -51,7 +54,8 @@ func ReflectError(err error) []e.Error {
 		for _, element := range fields {
 			values := strings.Split(element, ":")
 			if len(values) == 2 {
-				tag := strings.TrimSpace(strings.ToLower(values[0]))
+				tag := strings.TrimSpace(ToLowerFirst(values[0]))
+				//tag := strings.TrimSpace(values[0])
 				msg := strings.TrimSpace(values[1])
 				errors = append(errors, e.New(tag, e.ServerErrorInvalidStructure, msg))
 			}
@@ -60,4 +64,13 @@ func ReflectError(err error) []e.Error {
 	}
 	return nil
 }
+
+func ToLowerFirst(s string) string {
+	if s == "" {
+		return ""
+	}
+	r, n := utf8.DecodeRuneInString(s)
+	return string(unicode.ToLower(r)) + s[n:]
+}
+
 
